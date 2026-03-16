@@ -32,7 +32,28 @@ const safeJsonParse = (value, fallback = null) => {
 	}
 };
 
-export const getStoredToken = () => safeStorageGet(STORAGE_KEYS.TOKEN);
+export const getStoredToken = () => {
+	const token = safeStorageGet(STORAGE_KEYS.TOKEN);
+
+	if (typeof token !== "string") {
+		return null;
+	}
+
+	const normalized = token.trim();
+
+	if (
+		!normalized ||
+		normalized === "undefined" ||
+		normalized === "null" ||
+		normalized.startsWith("mock-token-")
+	) {
+		safeStorageRemove(STORAGE_KEYS.TOKEN);
+		safeStorageRemove(STORAGE_KEYS.USER);
+		return null;
+	}
+
+	return normalized;
+};
 
 export const setStoredToken = (token) => {
 	safeStorageSet(STORAGE_KEYS.TOKEN, token);
@@ -53,18 +74,7 @@ export const clearAuthStorage = () => {
 };
 
 export const isAuthenticated = () => {
-	const token = getStoredToken();
-
-	if (typeof token !== "string") return false;
-
-	const normalized = token.trim();
-	if (!normalized) return false;
-
-	if (normalized === "undefined" || normalized === "null") {
-		return false;
-	}
-
-	return true;
+	return Boolean(getStoredToken());
 };
 
 export const getInitials = (name = "Guest") =>

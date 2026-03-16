@@ -7,14 +7,7 @@ const socket = io(SOCKET_URL, {
 	reconnection: true
 });
 
-const isMockToken = (token) =>
-	typeof token === "string" && token.startsWith("mock-token-");
-
 export const connectSocket = (token) => {
-	if (isMockToken(token)) {
-		return;
-	}
-
 	if (token) {
 		socket.auth = { token };
 	}
