@@ -62,18 +62,18 @@ const JoinRoom = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#111318] text-white">
+    <div className="min-h-screen bg-[#0f172a] text-white">
       <Navbar userName={user?.name || "Student"} onLogout={handleLogout} />
 
       <div className="mx-auto w-full max-w-xl px-4 py-8">
-        <div className="rounded-2xl border border-white/10 bg-[#1e1e1e] p-6 shadow-xl sm:p-8">
+        <div className="rounded-2xl border border-[#334155] bg-[#1e293b] p-6 shadow-xl sm:p-8">
         <h2 className="text-2xl font-semibold">Join a room</h2>
 
         <p className="mt-2 text-sm text-slate-400">
           Paste a room id or full invite link to enter the collaborative editor.
         </p>
 
-        <div className="mt-6 flex rounded-lg bg-[#15171d] p-1">
+        <div className="mt-6 flex rounded-lg bg-[#0f172a] p-1">
           <button
             onClick={() => navigate("/create-room")}
             className="flex-1 rounded-md px-3 py-2 text-sm text-slate-400 transition hover:text-slate-200"
@@ -81,7 +81,7 @@ const JoinRoom = () => {
             Create room
           </button>
 
-          <button className="flex-1 rounded-md bg-[#252526] px-3 py-2 text-sm text-white">
+          <button className="flex-1 rounded-md bg-[#334155] px-3 py-2 text-sm text-white">
             Join room
           </button>
         </div>
@@ -93,7 +93,7 @@ const JoinRoom = () => {
             value={roomInput}
             onChange={(e) => setRoomInput(e.target.value)}
             placeholder="e.g. ABC123 or http://localhost:5173/room/ABC123"
-            className="w-full rounded-lg border border-white/15 bg-[#252526] px-3 py-2.5 text-white outline-none transition focus:border-blue-400"
+            className="w-full rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-2.5 text-white outline-none transition focus:border-[#3b82f6]"
           />
         </label>
 

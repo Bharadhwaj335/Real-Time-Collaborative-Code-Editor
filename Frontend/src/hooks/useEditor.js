@@ -10,7 +10,7 @@ const MAX_RECENT_CHANGES = 25;
 
 const createDefaultFile = ({
   id = "main",
-  name = "main.js",
+  name = "index.js",
   language = DEFAULT_LANGUAGE,
   code = DEFAULT_EDITOR_CODE
 } = {}) => ({
@@ -22,16 +22,61 @@ const createDefaultFile = ({
   lastEditedAt: null
 });
 
-const normalizeFile = (file, fallbackLanguage = DEFAULT_LANGUAGE) => {
-  const language = (file?.language || fallbackLanguage || DEFAULT_LANGUAGE).toLowerCase();
+const makeUniqueName = (desiredName, existingNames) => {
+  const cleanBase = (desiredName || "untitled.txt").trim() || "untitled.txt";
+
+  if (!existingNames.has(cleanBase.toLowerCase())) {
+    return cleanBase;
+  }
+
+  const dotIndex = cleanBase.lastIndexOf(".");
+  const hasExt = dotIndex > 0;
+  const base = hasExt ? cleanBase.slice(0, dotIndex) : cleanBase;
+  const ext = hasExt ? cleanBase.slice(dotIndex) : "";
+
+  for (let attempt = 1; attempt <= 200; attempt += 1) {
+    const candidate = `${base}-${attempt}${ext}`;
+
+    if (!existingNames.has(candidate.toLowerCase())) {
+      return candidate;
+    }
+  }
+
+  return `${base}-${Date.now()}${ext}`;
+};
+
+const normalizeServerFiles = (incomingFiles = [], fallbackLanguage = DEFAULT_LANGUAGE) => {
+  const existingNames = new Set();
+  const files = {};
+  const fileOrder = [];
+  const fileIdToName = {};
+
+  incomingFiles.forEach((item, index) => {
+    const baseName = (item?.name || `file-${index + 1}.txt`).trim() || `file-${index + 1}.txt`;
+    const uniqueName = makeUniqueName(baseName, existingNames);
+    existingNames.add(uniqueName.toLowerCase());
+
+    const normalizedFile = {
+      id: item?.id || uniqueName,
+      name: uniqueName,
+      language: (item?.language || fallbackLanguage || DEFAULT_LANGUAGE).toLowerCase(),
+      code: typeof item?.code === "string" ? item.code : "",
+      lastEditedBy: item?.lastEditedBy || "",
+      lastEditedAt: item?.lastEditedAt || null
+    };
+
+    files[uniqueName] = normalizedFile;
+    fileOrder.push(uniqueName);
+
+    if (normalizedFile.id) {
+      fileIdToName[normalizedFile.id] = uniqueName;
+    }
+  });
 
   return {
-    id: file?.id || `file-${Date.now()}`,
-    name: file?.name || "untitled.txt",
-    language,
-    code: typeof file?.code === "string" ? file.code : "",
-    lastEditedBy: file?.lastEditedBy || "",
-    lastEditedAt: file?.lastEditedAt || null
+    files,
+    fileOrder,
+    fileIdToName
   };
 };
 
@@ -44,11 +89,7 @@ const buildChangeSummary = (changes = []) => {
   const start = Number(first?.startLineNumber) || 1;
   const end = Number(first?.endLineNumber) || start;
 
-  if (start === end) {
-    return `Edited line ${start}`;
-  }
-
-  return `Edited lines ${start}-${end}`;
+  return start === end ? `Edited line ${start}` : `Edited lines ${start}-${end}`;
 };
 
 const useEditor = ({ roomId, user }) => {
@@ -56,22 +97,42 @@ const useEditor = ({ roomId, user }) => {
 
   const userId = user?.id;
   const userName = user?.name || "Guest";
+
   const fallbackFile = useMemo(
     () => createDefaultFile({ language: DEFAULT_LANGUAGE }),
     []
   );
 
-  const [files, setFiles] = useState([fallbackFile]);
-  const [activeFileId, setActiveFileId] = useState(fallbackFile.id);
+  const [editorState, setEditorState] = useState(() => ({
+    files: { [fallbackFile.name]: fallbackFile },
+    fileOrder: [fallbackFile.name],
+    fileIdToName: { [fallbackFile.id]: fallbackFile.name },
+    activeFileName: fallbackFile.name
+  }));
   const [recentActivity, setRecentActivity] = useState([]);
   const [remoteCursors, setRemoteCursors] = useState({});
 
-  const applyingRemoteChangeRef = useRef(false);
+  const stateRef = useRef(editorState);
   const activityIdRef = useRef(0);
 
+  useEffect(() => {
+    stateRef.current = editorState;
+  }, [editorState]);
+
   const activeFile = useMemo(() => {
-    return files.find((file) => file.id === activeFileId) || files[0] || fallbackFile;
-  }, [activeFileId, fallbackFile, files]);
+    const current = editorState.files[editorState.activeFileName];
+
+    if (current) return current;
+
+    const firstName = editorState.fileOrder[0];
+    return editorState.files[firstName] || fallbackFile;
+  }, [editorState.activeFileName, editorState.fileOrder, editorState.files, fallbackFile]);
+
+  const fileTabs = useMemo(() => {
+    return editorState.fileOrder
+      .map((fileName) => editorState.files[fileName])
+      .filter(Boolean);
+  }, [editorState.fileOrder, editorState.files]);
 
   const code = activeFile?.code || "";
   const language = activeFile?.language || DEFAULT_LANGUAGE;
@@ -80,46 +141,23 @@ const useEditor = ({ roomId, user }) => {
     activityIdRef.current += 1;
 
     setRecentActivity((prev) => {
-      const next = [
+      return [
         {
           id: `${Date.now()}-${activityIdRef.current}`,
           ...entry
         },
         ...prev
       ].slice(0, MAX_RECENT_CHANGES);
-
-      return next;
     });
   };
 
-  const syncActiveFile = ({ nextFileId, nextLanguage }) => {
-    const currentFileId = nextFileId || activeFile.id;
-
-    if (nextFileId && activeFileId !== nextFileId) {
-      setActiveFileId(nextFileId);
-    }
-
-    if (nextLanguage && currentFileId === activeFile.id) {
-      setFiles((prev) =>
-        prev.map((file) =>
-          file.id === currentFileId
-            ? {
-                ...file,
-                language: nextLanguage
-              }
-            : file
-        )
-      );
-    }
-  };
-
-  const emitCodeChange = ({ fileId, fileName, nextCode, nextLanguage, changes = [] }) => {
-    if (!roomId || !userId) return;
+  const emitCodeChange = ({ file, nextCode, nextLanguage, changes = [] }) => {
+    if (!roomId || !userId || !file) return;
 
     socket.emit(SOCKET_EVENTS.CODE_CHANGE, {
       roomId,
-      fileId,
-      fileName,
+      fileId: file.id,
+      fileName: file.name,
       code: nextCode,
       language: nextLanguage,
       changes,
@@ -129,30 +167,28 @@ const useEditor = ({ roomId, user }) => {
   };
 
   const handleEditorChange = (nextCode = "", editorChanges = []) => {
-    const targetFile = activeFile;
+    const currentState = stateRef.current;
+    const currentFile = currentState.files[currentState.activeFileName];
 
-    setFiles((prev) =>
-      prev.map((file) =>
-        file.id === targetFile.id
-          ? {
-              ...file,
-              code: nextCode,
-              lastEditedBy: userName,
-              lastEditedAt: new Date().toISOString()
-            }
-          : file
-      )
-    );
+    if (!currentFile) return;
 
-    if (applyingRemoteChangeRef.current) {
-      return;
-    }
+    setEditorState((prev) => ({
+      ...prev,
+      files: {
+        ...prev.files,
+        [currentFile.name]: {
+          ...prev.files[currentFile.name],
+          code: nextCode,
+          lastEditedBy: userName,
+          lastEditedAt: new Date().toISOString()
+        }
+      }
+    }));
 
     emitCodeChange({
-      fileId: targetFile.id,
-      fileName: targetFile.name,
+      file: currentFile,
       nextCode,
-      nextLanguage: targetFile.language,
+      nextLanguage: currentFile.language,
       changes: editorChanges
     });
   };
@@ -160,18 +196,29 @@ const useEditor = ({ roomId, user }) => {
   const handleCursorMove = (position) => {
     if (!roomId || !userId || !position) return;
 
+    const currentState = stateRef.current;
+    const currentFile = currentState.files[currentState.activeFileName];
+
     socket.emit(SOCKET_EVENTS.CURSOR_MOVE, {
       roomId,
       userId,
       userName,
-      fileId: activeFile.id,
+      fileId: currentFile?.id,
+      fileName: currentFile?.name,
       position
     });
   };
 
-  const switchActiveFile = (nextFileId) => {
-    if (!nextFileId) return;
-    syncActiveFile({ nextFileId });
+  const setActiveFileName = (nextFileName) => {
+    if (!nextFileName) return;
+
+    setEditorState((prev) => {
+      if (!prev.files[nextFileName]) return prev;
+      return {
+        ...prev,
+        activeFileName: nextFileName
+      };
+    });
   };
 
   const createFile = ({ fileName, language: nextLanguage, initialCode = "" }) => {
@@ -187,26 +234,32 @@ const useEditor = ({ roomId, user }) => {
     });
   };
 
-  const updateLanguage = (nextLanguage) => {
+  const setLanguage = (nextLanguage) => {
     const normalizedLanguage = String(nextLanguage || DEFAULT_LANGUAGE).toLowerCase();
 
-    setFiles((prev) =>
-      prev.map((file) =>
-        file.id === activeFile.id
-          ? {
-              ...file,
-              language: normalizedLanguage
-            }
-          : file
-      )
-    );
+    setEditorState((prev) => {
+      const file = prev.files[prev.activeFileName];
+      if (!file) return prev;
 
-    emitCodeChange({
-      fileId: activeFile.id,
-      fileName: activeFile.name,
-      nextCode: activeFile.code,
-      nextLanguage: normalizedLanguage,
-      changes: []
+      const updatedFile = {
+        ...file,
+        language: normalizedLanguage
+      };
+
+      emitCodeChange({
+        file: updatedFile,
+        nextCode: updatedFile.code,
+        nextLanguage: normalizedLanguage,
+        changes: []
+      });
+
+      return {
+        ...prev,
+        files: {
+          ...prev.files,
+          [prev.activeFileName]: updatedFile
+        }
+      };
     });
   };
 
@@ -214,108 +267,124 @@ const useEditor = ({ roomId, user }) => {
     if (!roomId || !userId) return;
 
     const handleRoomState = (payload) => {
-      if (!payload) return;
+      if (!Array.isArray(payload?.files) || payload.files.length === 0) return;
 
-      if (Array.isArray(payload.files) && payload.files.length > 0) {
-        const normalizedFiles = payload.files.map((file) =>
-          normalizeFile(file, payload.language || DEFAULT_LANGUAGE)
-        );
+      const normalized = normalizeServerFiles(payload.files, payload?.language || DEFAULT_LANGUAGE);
+      const activeFileNameFromId =
+        normalized.fileIdToName[payload?.activeFileId] || normalized.fileOrder[0];
 
-        setFiles(normalizedFiles);
-
-        const nextActiveId = payload.activeFileId || normalizedFiles[0].id;
-        setActiveFileId(nextActiveId);
-      }
+      setEditorState({
+        ...normalized,
+        activeFileName: activeFileNameFromId
+      });
     };
 
     const handleFileListUpdate = (payload) => {
-      if (!Array.isArray(payload?.files) || payload.files.length === 0) {
-        return;
-      }
+      if (!Array.isArray(payload?.files) || payload.files.length === 0) return;
 
-      const normalizedFiles = payload.files.map((file) =>
-        normalizeFile(file, payload.language || DEFAULT_LANGUAGE)
-      );
+      const normalized = normalizeServerFiles(payload.files, payload?.language || DEFAULT_LANGUAGE);
 
-      setFiles(normalizedFiles);
+      setEditorState((prev) => {
+        const currentStillExists = Boolean(normalized.files[prev.activeFileName]);
 
-      const currentFileStillExists = normalizedFiles.some((file) => file.id === activeFileId);
+        if (currentStillExists && payload?.createdBy?.id !== userId) {
+          return {
+            ...normalized,
+            activeFileName: prev.activeFileName
+          };
+        }
 
-      if (!currentFileStillExists) {
-        const nextActiveId = payload.activeFileId || normalizedFiles[0].id;
-        setActiveFileId(nextActiveId);
-        return;
-      }
+        const activeFromServer = normalized.fileIdToName[payload?.activeFileId];
 
-      if (payload?.createdBy?.id && payload.createdBy.id === userId) {
-        const nextActiveId = payload.activeFileId || activeFileId;
-        setActiveFileId(nextActiveId);
-      }
+        return {
+          ...normalized,
+          activeFileName: activeFromServer || prev.activeFileName || normalized.fileOrder[0]
+        };
+      });
     };
 
     const handleCodeUpdate = (payload) => {
-      if (!payload) return;
-      if (payload.userId && payload.userId === userId) return;
+      if (!payload || payload?.userId === userId) return;
 
-      if (!payload.fileId) return;
+      setEditorState((prev) => {
+        const existingNames = new Set(Object.keys(prev.files).map((name) => name.toLowerCase()));
 
-      applyingRemoteChangeRef.current = true;
+        let targetName = "";
 
-      setFiles((prev) => {
-        const hasFile = prev.some((file) => file.id === payload.fileId);
-        const nextFiles = hasFile
-          ? prev.map((file) =>
-              file.id === payload.fileId
-                ? {
-                    ...file,
-                    code: typeof payload.code === "string" ? payload.code : file.code,
-                    language: payload.language || file.language,
-                    lastEditedBy: payload.userName || file.lastEditedBy,
-                    lastEditedAt: payload.timestamp || file.lastEditedAt
-                  }
-                : file
-            )
-          : [
-              ...prev,
-              normalizeFile(
-                {
-                  id: payload.fileId,
-                  name: payload.fileName || "untitled.txt",
-                  language: payload.language || DEFAULT_LANGUAGE,
-                  code: typeof payload.code === "string" ? payload.code : "",
-                  lastEditedBy: payload.userName || "Collaborator",
-                  lastEditedAt: payload.timestamp || new Date().toISOString()
-                },
-                DEFAULT_LANGUAGE
-              )
-            ];
+        if (payload?.fileId && prev.fileIdToName[payload.fileId]) {
+          targetName = prev.fileIdToName[payload.fileId];
+        } else if (payload?.fileName && prev.files[payload.fileName]) {
+          targetName = payload.fileName;
+        } else {
+          targetName = makeUniqueName(payload?.fileName || "untitled.txt", existingNames);
+        }
 
-        return nextFiles;
+        const previousFile = prev.files[targetName] || {
+          id: payload?.fileId || targetName,
+          name: targetName,
+          language: (payload?.language || DEFAULT_LANGUAGE).toLowerCase(),
+          code: "",
+          lastEditedBy: "",
+          lastEditedAt: null
+        };
+
+        const nextFile = {
+          ...previousFile,
+          id: payload?.fileId || previousFile.id,
+          name: targetName,
+          language: (payload?.language || previousFile.language || DEFAULT_LANGUAGE).toLowerCase(),
+          code: typeof payload?.code === "string" ? payload.code : previousFile.code,
+          lastEditedBy: payload?.userName || "Collaborator",
+          lastEditedAt: payload?.timestamp || new Date().toISOString()
+        };
+
+        const nextFiles = {
+          ...prev.files,
+          [targetName]: nextFile
+        };
+
+        const nextOrder = prev.fileOrder.includes(targetName)
+          ? prev.fileOrder
+          : [...prev.fileOrder, targetName];
+
+        const nextIdMap = {
+          ...prev.fileIdToName
+        };
+
+        if (nextFile.id) {
+          nextIdMap[nextFile.id] = targetName;
+        }
+
+        const nextActive = prev.files[prev.activeFileName]
+          ? prev.activeFileName
+          : targetName;
+
+        return {
+          files: nextFiles,
+          fileOrder: nextOrder,
+          fileIdToName: nextIdMap,
+          activeFileName: nextActive
+        };
       });
 
-      if (payload.fileId !== activeFileId) {
-        setActiveFileId(payload.fileId);
-      }
-
-      const changes = Array.isArray(payload.changes) ? payload.changes : [];
+      const changes = Array.isArray(payload?.changes) ? payload.changes : [];
 
       pushActivity({
-        fileId: payload.fileId,
-        fileName: payload.fileName || "Untitled",
-        userId: payload.userId,
-        userName: payload.userName || "Collaborator",
-        timestamp: payload.timestamp || new Date().toISOString(),
+        fileName: payload?.fileName || "untitled.txt",
+        userId: payload?.userId,
+        userName: payload?.userName || "Collaborator",
+        timestamp: payload?.timestamp || new Date().toISOString(),
         changes,
         summary: buildChangeSummary(changes)
       });
-
-      window.setTimeout(() => {
-        applyingRemoteChangeRef.current = false;
-      }, 0);
     };
 
     const handleCursorUpdate = (payload) => {
       if (!payload?.userId || payload.userId === userId) return;
+
+      const currentState = stateRef.current;
+      const cursorFileName =
+        currentState.fileIdToName[payload?.fileId] || payload?.fileName || "untitled.txt";
 
       setRemoteCursors((prev) => ({
         ...prev,
@@ -323,6 +392,7 @@ const useEditor = ({ roomId, user }) => {
           userId: payload.userId,
           userName: payload.userName || "Collaborator",
           fileId: payload.fileId,
+          fileName: cursorFileName,
           position: payload.position
         }
       }));
@@ -354,18 +424,19 @@ const useEditor = ({ roomId, user }) => {
       socket.off(SOCKET_EVENTS.CURSOR_UPDATE, handleCursorUpdate);
       socket.off(SOCKET_EVENTS.USER_LEFT, handleUserLeft);
     };
-  }, [activeFileId, roomId, socket, userId]);
+  }, [roomId, socket, userId, userName]);
 
   return {
-    files,
-    activeFileId,
+    filesByName: editorState.files,
+    fileTabs,
+    activeFileName: editorState.activeFileName,
     activeFile,
     code,
     language,
     recentActivity,
     remoteCursors,
-    setActiveFileId: switchActiveFile,
-    setLanguage: updateLanguage,
+    setActiveFileName,
+    setLanguage,
     handleEditorChange,
     handleCursorMove,
     createFile

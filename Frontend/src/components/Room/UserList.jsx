@@ -1,9 +1,14 @@
 import Avatar from "../Common/Avatar";
 
 const UserList = ({ users = [], currentUserId, maxParticipants }) => {
+  const orderedUsers = [...users].sort((a, b) => {
+    if (a.id === currentUserId) return -1;
+    if (b.id === currentUserId) return 1;
+    return a.name.localeCompare(b.name);
+  });
 
   return (
-    <div className="rounded-xl border border-white/10 bg-[#252526] p-4">
+    <div className="rounded-xl border border-[#334155] bg-[#0f172a] p-4">
       <h3 className="text-sm font-semibold text-white">Active users ({users.length})</h3>
       <p className="mt-1 text-xs text-slate-400">
         Capacity: {users.length}/{maxParticipants || users.length}
@@ -15,10 +20,14 @@ const UserList = ({ users = [], currentUserId, maxParticipants }) => {
         </p>
       ) : (
         <div className="mt-3 space-y-2">
-          {users.map((user) => (
+          {orderedUsers.map((user) => (
             <div
               key={user.id}
-              className="flex items-center justify-between rounded-lg border border-white/5 bg-[#1e1e1e] px-3 py-2"
+              className={`flex items-center justify-between rounded-lg border px-3 py-2 ${
+                user.id === currentUserId
+                  ? "border-[#3b82f6]/60 bg-[#3b82f6]/15"
+                  : "border-[#334155] bg-[#1e293b]"
+              }`}
             >
               <div className="flex items-center gap-2">
                 <Avatar name={user.name} size="sm" />

@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+	--cc-bg: #0f172a;
+	--cc-panel: #1e293b;
+	--cc-border: #334155;
+	--cc-accent: #3b82f6;
+}
+
+body {
+	background: var(--cc-bg);
+	color: #e2e8f0;
+}
+
 .cc-activity-line {
 	background: linear-gradient(90deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0));
 	border-left: 2px solid rgba(96, 165, 250, 0.9);

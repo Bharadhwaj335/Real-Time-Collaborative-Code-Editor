@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { FaPlus, FaRegFileCode, FaUsers } from "react-icons/fa";
 
 import Modal from "../components/Common/Modal";
 import Navbar from "../components/Common/Navbar";
 import CodeEditor from "../components/Editor/CodeEditor";
 import EditorToolbar from "../components/Editor/EditorToolbar";
+import OutputConsole from "../components/Editor/OutputConsole";
 import CursorOverlay from "../components/Room/CursorOverlay";
-import InviteLink from "../components/Room/InviteLink";
-import RoomHeader from "../components/Room/RoomHeader";
 import UserList from "../components/Room/UserList";
 import ChatBox from "../components/Chat/ChatBox";
 import useRoom from "../hooks/useRoom";
@@ -35,27 +35,25 @@ const extractExecutionResult = (payload) => {
     payload?.message ||
     "";
 
-  return {
-    stdout,
-    stderr,
-    error
-  };
+  return { stdout, stderr, error };
 };
 
 const formatActivityTime = (value) => {
   if (!value) return "";
 
   const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
+  if (Number.isNaN(date.getTime())) return "";
 
   return date.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit"
   });
 };
+
+const sidebarItems = [
+  { key: "files", label: "Files", icon: FaRegFileCode },
+  { key: "users", label: "Users", icon: FaUsers }
+];
 
 const EditorRoom = () => {
   const { roomId } = useParams();
@@ -79,12 +77,12 @@ const EditorRoom = () => {
   }, []);
 
   const {
-    files,
-    activeFileId,
+    fileTabs,
+    activeFileName,
     activeFile,
     code,
     language,
-    setActiveFileId,
+    setActiveFileName,
     setLanguage,
     recentActivity,
     remoteCursors,
@@ -107,16 +105,36 @@ const EditorRoom = () => {
     stderr: "",
     error: ""
   });
+  const [consoleLogs, setConsoleLogs] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [sidebarMode, setSidebarMode] = useState("files");
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
   const [newFileName, setNewFileName] = useState("");
 
-  const inviteLink = useMemo(() => buildRoomInviteLink(roomId), [roomId]);
+  const lastActivityIdRef = useRef("");
+
   const roomUsers = users.length > 0 ? users : [{ id: user.id, name: user.name, status: "online" }];
+  const inviteLink = useMemo(() => buildRoomInviteLink(roomId), [roomId]);
+
+  const addConsoleLog = (level, message) => {
+    setConsoleLogs((prev) => {
+      const next = [
+        ...prev,
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          level,
+          message,
+          timestamp: new Date().toISOString()
+        }
+      ];
+
+      return next.slice(-200);
+    });
+  };
 
   useEffect(() => {
     const languageFromRoute = location.state?.language;
+
     if (languageFromRoute && !activeFile?.language) {
       setLanguage(languageFromRoute);
     }
@@ -126,6 +144,7 @@ const EditorRoom = () => {
     const handleFileCreateError = (payload) => {
       const message = payload?.message || "Could not create file.";
       toast.error(message);
+      addConsoleLog("error", message);
     };
 
     socket.on(SOCKET_EVENTS.FILE_CREATE_ERROR, handleFileCreateError);
@@ -150,50 +169,83 @@ const EditorRoom = () => {
     };
   }, [navigate, roomError, setRoomError]);
 
+  useEffect(() => {
+    if (!recentActivity.length) return;
+
+    const latest = recentActivity[0];
+
+    if (!latest?.id || latest.id === lastActivityIdRef.current) {
+      return;
+    }
+
+    lastActivityIdRef.current = latest.id;
+    addConsoleLog("info", `${latest.userName} updated ${latest.fileName} (${latest.summary}).`);
+  }, [recentActivity]);
+
+  const copyInviteLink = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      toast.success("Invite link copied.");
+      addConsoleLog("info", "Invite link copied to clipboard.");
+    } catch {
+      toast.error("Could not copy invite link.");
+      addConsoleLog("error", "Failed to copy invite link.");
+    }
+  };
+
   const handleRunCode = async () => {
     if (!code.trim()) {
       toast.error("Type some code before running.");
+      addConsoleLog("warning", "Run blocked: editor is empty.");
       return;
     }
 
     setIsRunning(true);
     setOutput({ stdout: "", stderr: "", error: "" });
+    addConsoleLog("info", `Running ${activeFileName || "current file"} in ${language}.`);
 
     try {
-      const response = await executeCode({
-        roomId,
-        code,
-        language
-      });
+      const response = await executeCode({ roomId, code, language });
+      const result = extractExecutionResult(response);
 
-      setOutput(extractExecutionResult(response));
+      setOutput(result);
+
+      if (result.stdout?.trim()) {
+        addConsoleLog("info", "Execution finished with stdout output.");
+      }
+
+      if (result.stderr?.trim()) {
+        addConsoleLog("warning", "Execution finished with stderr output.");
+      }
+
+      if (result.error?.trim()) {
+        addConsoleLog("error", "Execution returned compilation/runtime issue.");
+      }
+
+      if (!result.stdout?.trim() && !result.stderr?.trim() && !result.error?.trim()) {
+        addConsoleLog("info", "Execution completed with no console output.");
+      }
     } catch (error) {
       const message =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
         "Failed to run code.";
 
-      setOutput((prev) => ({
-        ...prev,
-        error: message
-      }));
+      setOutput((prev) => ({ ...prev, error: message }));
       toast.error(message);
+      addConsoleLog("error", message);
     } finally {
       setIsRunning(false);
     }
   };
 
-  const copyInviteLink = async () => {
-    try {
-      await navigator.clipboard.writeText(inviteLink);
-      toast.success("Invite link copied.");
-    } catch {
-      toast.error("Could not copy invite link.");
-    }
-  };
-
   const handleCreateFile = () => {
     const trimmedName = newFileName.trim();
+
+    if (!trimmedName) {
+      toast.error("Please enter a file name.");
+      return;
+    }
 
     createFile({
       fileName: trimmedName,
@@ -201,6 +253,7 @@ const EditorRoom = () => {
       initialCode: ""
     });
 
+    addConsoleLog("info", `Create file request sent: ${trimmedName}`);
     setIsFileModalOpen(false);
     setNewFileName("");
   };
@@ -212,136 +265,154 @@ const EditorRoom = () => {
   };
 
   return (
-    <div className="flex h-screen min-h-screen flex-col bg-[#111318] text-white">
+    <div className="flex h-screen min-h-screen flex-col bg-[#0f172a] text-white">
       <Navbar
         roomId={roomId}
         connectedUsers={roomUsers.length}
         isConnected={isConnected}
         userName={user.name}
-        onShare={() => setIsInviteOpen(true)}
         onLogout={handleLogout}
       />
 
-      <div className="grid min-h-0 flex-1 gap-3 p-3 lg:grid-cols-[260px_minmax(0,1fr)_320px] lg:p-4">
-        <aside className="flex min-h-0 flex-col gap-3">
-          <RoomHeader
-            roomId={roomId}
-            language={language}
-            isConnected={isConnected}
-            maxParticipants={maxParticipants}
-            currentParticipants={currentParticipants || roomUsers.length}
-          />
-
-          <InviteLink roomId={roomId} inviteLink={inviteLink} onCopy={copyInviteLink} />
-
-          <div className="min-h-0 flex-1 overflow-auto">
-            <UserList
-              users={roomUsers}
-              currentUserId={user.id}
-              maxParticipants={maxParticipants}
-            />
-          </div>
-        </aside>
-
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#1e1e1e]">
-          <EditorToolbar
-            roomId={roomId}
-            language={language}
-            activeFileName={activeFile?.name}
-            filesCount={files.length}
-            onLanguageChange={setLanguage}
-            onRunCode={handleRunCode}
-            onCopyLink={copyInviteLink}
-            onCreateFile={() => setIsFileModalOpen(true)}
-            isRunning={isRunning}
-          />
-
-          <div className="flex items-center gap-2 overflow-auto border-b border-white/10 bg-[#202127] px-3 py-2">
-            {files.map((file) => (
+      <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+        <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[56px_240px_minmax(0,1fr)_320px]">
+          <aside className="flex min-h-0 flex-col items-center gap-2 rounded-xl border border-[#334155] bg-[#1e293b] p-2">
+            {sidebarItems.map((item) => (
               <button
-                key={file.id}
-                onClick={() => setActiveFileId(file.id)}
-                className={`rounded-md border px-3 py-1.5 text-xs transition ${
-                  file.id === activeFileId
-                    ? "border-blue-400 bg-blue-500/15 text-blue-200"
-                    : "border-white/10 bg-[#2a2b31] text-slate-300 hover:border-blue-300/40"
+                key={item.key}
+                onClick={() => setSidebarMode(item.key)}
+                title={item.label}
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border transition ${
+                  sidebarMode === item.key
+                    ? "border-[#3b82f6]/70 bg-[#3b82f6]/20 text-blue-200"
+                    : "border-[#334155] bg-[#0f172a] text-slate-300 hover:border-[#3b82f6]/50"
                 }`}
               >
-                {file.name}
+                <item.icon />
               </button>
             ))}
-          </div>
+          </aside>
 
-          <div className="relative min-h-0 flex-1">
-            <CursorOverlay remoteCursors={remoteCursors} activeFileId={activeFileId} />
-            <CodeEditor
+          <aside className="min-h-0 overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b]">
+            {sidebarMode === "files" ? (
+              <div className="flex h-full min-h-0 flex-col">
+                <div className="flex items-center justify-between border-b border-[#334155] px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Files</p>
+                  <button
+                    onClick={() => setIsFileModalOpen(true)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#334155] bg-[#0f172a] text-slate-200 transition hover:border-[#3b82f6]/60"
+                  >
+                    <FaPlus className="text-[11px]" />
+                  </button>
+                </div>
+
+                <div className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
+                  {fileTabs.map((file) => (
+                    <button
+                      key={file.name}
+                      onClick={() => setActiveFileName(file.name)}
+                      className={`w-full rounded-lg border px-2.5 py-2 text-left text-xs transition ${
+                        file.name === activeFileName
+                          ? "border-[#3b82f6]/70 bg-[#3b82f6]/20 text-blue-200"
+                          : "border-[#334155] bg-[#0f172a] text-slate-300 hover:border-[#3b82f6]/50"
+                      }`}
+                    >
+                      {file.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="min-h-0 h-full overflow-auto p-3">
+                <UserList
+                  users={roomUsers}
+                  currentUserId={user.id}
+                  maxParticipants={maxParticipants}
+                />
+              </div>
+            )}
+          </aside>
+
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b]">
+            <EditorToolbar
+              roomId={roomId}
               language={language}
-              code={code}
-              activityItems={recentActivity}
-              activeFileId={activeFileId}
-              onCodeChange={handleEditorChange}
-              onCursorMove={handleCursorMove}
+              activeFileName={activeFileName}
+              onLanguageChange={setLanguage}
+              onRunCode={handleRunCode}
+              onCopyLink={copyInviteLink}
+              isRunning={isRunning}
             />
-          </div>
 
-          <div className="border-t border-white/10 bg-[#202127] px-3 py-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">
-              Live updates
-            </p>
+            <div className="flex items-center gap-2 overflow-x-auto border-b border-[#334155] bg-[#0f172a] px-3 py-2">
+              {fileTabs.map((file) => (
+                <button
+                  key={file.name}
+                  onClick={() => setActiveFileName(file.name)}
+                  className={`rounded-lg border px-3 py-1.5 text-xs transition ${
+                    file.name === activeFileName
+                      ? "border-[#3b82f6]/70 bg-[#3b82f6]/20 text-blue-200"
+                      : "border-[#334155] bg-[#1e293b] text-slate-300 hover:border-[#3b82f6]/50"
+                  }`}
+                >
+                  {file.name}
+                </button>
+              ))}
 
-            <div className="mt-2 max-h-24 space-y-1 overflow-auto text-xs text-slate-300">
+              <button
+                onClick={() => setIsFileModalOpen(true)}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#334155] bg-[#1e293b] text-slate-300 transition hover:border-[#3b82f6]/50"
+              >
+                <FaPlus className="text-[10px]" />
+              </button>
+            </div>
+
+            <div className="relative min-h-0 flex-1">
+              <CursorOverlay remoteCursors={remoteCursors} activeFileName={activeFileName} />
+              <CodeEditor
+                language={language}
+                code={code}
+                activityItems={recentActivity}
+                activeFileName={activeFileName}
+                onCodeChange={handleEditorChange}
+                onCursorMove={handleCursorMove}
+              />
+            </div>
+
+            <div className="border-t border-[#334155] bg-[#0f172a] px-3 py-2 text-xs text-slate-300">
               {recentActivity.length === 0 ? (
-                <p className="text-slate-400">No remote edits yet.</p>
+                <p>No remote edits yet.</p>
               ) : (
-                recentActivity.slice(0, 6).map((item) => (
-                  <p key={item.id}>
-                    <span className="font-semibold text-blue-300">{item.userName}</span> updated {item.fileName} ({item.summary}) {formatActivityTime(item.timestamp)}
-                  </p>
-                ))
+                <p>
+                  {recentActivity[0].userName} updated {recentActivity[0].fileName} ({recentActivity[0].summary}) {formatActivityTime(recentActivity[0].timestamp)}
+                </p>
               )}
             </div>
-          </div>
-        </section>
+          </section>
 
-        <aside className="min-h-0">
-          <ChatBox roomId={roomId} user={user} />
-        </aside>
-      </div>
+          <aside className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b] p-3">
+            <div className="rounded-xl border border-[#334155] bg-[#0f172a] p-3">
+              <p className="text-xs uppercase tracking-wide text-slate-400">Room</p>
+              <p className="mt-1 text-sm font-semibold uppercase text-slate-100">{roomId}</p>
+              <p className="mt-2 text-xs text-slate-300">
+                Participants: {currentParticipants || roomUsers.length}/{maxParticipants || roomUsers.length}
+              </p>
+            </div>
 
-      <section className="border-t border-white/10 bg-[#1a1d25] p-4">
-        <h3 className="text-sm font-semibold text-slate-200">Output Console</h3>
-
-        <div className="mt-3 grid gap-3 text-sm lg:grid-cols-3">
-          <div className="rounded-lg border border-white/10 bg-[#252526] p-3">
-            <p className="mb-2 font-semibold text-emerald-300">stdout</p>
-            <pre className="max-h-36 overflow-auto whitespace-pre-wrap break-words text-slate-200">
-              {output.stdout || "No output yet."}
-            </pre>
-          </div>
-
-          <div className="rounded-lg border border-white/10 bg-[#252526] p-3">
-            <p className="mb-2 font-semibold text-amber-300">stderr</p>
-            <pre className="max-h-36 overflow-auto whitespace-pre-wrap break-words text-slate-200">
-              {output.stderr || "No errors."}
-            </pre>
-          </div>
-
-          <div className="rounded-lg border border-white/10 bg-[#252526] p-3">
-            <p className="mb-2 font-semibold text-rose-300">Compilation / Runtime</p>
-            <pre className="max-h-36 overflow-auto whitespace-pre-wrap break-words text-slate-200">
-              {output.error || "No runtime issues."}
-            </pre>
-          </div>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <ChatBox roomId={roomId} user={user} />
+            </div>
+          </aside>
         </div>
-      </section>
 
-      <Modal
-        isOpen={isInviteOpen}
-        title="Invite to room"
-        onClose={() => setIsInviteOpen(false)}
-      >
-        <InviteLink roomId={roomId} inviteLink={inviteLink} onCopy={copyInviteLink} />
-      </Modal>
+        <OutputConsole
+          stdout={output.stdout}
+          stderr={output.stderr}
+          runtimeError={output.error}
+          logs={consoleLogs}
+          isRunning={isRunning}
+        />
+      </div>
 
       <Modal
         isOpen={isFileModalOpen}
@@ -354,14 +425,14 @@ const EditorRoom = () => {
             <input
               value={newFileName}
               onChange={(event) => setNewFileName(event.target.value)}
-              placeholder="utils.js"
-              className="mt-2 w-full rounded-lg border border-white/15 bg-[#252526] px-3 py-2.5 text-white outline-none transition focus:border-blue-400"
+              placeholder="App.js"
+              className="mt-2 w-full rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-2.5 text-white outline-none transition focus:border-[#3b82f6]"
             />
           </label>
 
           <button
             onClick={handleCreateFile}
-            className="w-full rounded-lg border border-blue-400/60 bg-blue-500/15 px-3 py-2 text-sm font-semibold text-blue-100 transition hover:bg-blue-500/25"
+            className="w-full rounded-lg border border-[#3b82f6]/60 bg-[#3b82f6]/20 px-3 py-2 text-sm font-semibold text-blue-100 transition hover:bg-[#3b82f6]/30"
           >
             Create File
           </button>

@@ -86,11 +86,11 @@ const CreateRoom = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#111318] text-white">
+    <div className="min-h-screen bg-[#0f172a] text-white">
       <Navbar userName={user?.name || "Student"} onLogout={handleLogout} />
 
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <div className="rounded-2xl border border-white/10 bg-[#1e1e1e] p-6 shadow-xl sm:p-8">
+        <div className="rounded-2xl border border-[#334155] bg-[#1e293b] p-6 shadow-xl sm:p-8">
         <h2 className="text-2xl font-semibold">Start a session</h2>
 
         <p className="mt-2 text-sm text-slate-400">
@@ -104,7 +104,7 @@ const CreateRoom = () => {
               value={roomName}
               onChange={(e) => setRoomName(e.target.value)}
               placeholder="DSA Practice Group"
-              className="w-full rounded-lg border border-white/15 bg-[#252526] px-3 py-2.5 text-white outline-none transition focus:border-blue-400"
+              className="w-full rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-2.5 text-white outline-none transition focus:border-[#3b82f6]"
             />
           </label>
 
@@ -113,7 +113,7 @@ const CreateRoom = () => {
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="w-full rounded-lg border border-white/15 bg-[#252526] px-3 py-2.5 text-white outline-none transition focus:border-blue-400"
+              className="w-full rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-2.5 text-white outline-none transition focus:border-[#3b82f6]"
             >
               {LANGUAGES.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -131,7 +131,7 @@ const CreateRoom = () => {
                 className={`rounded-lg border px-4 py-2.5 text-sm transition ${
                   visibility === "private"
                     ? "border-blue-400 bg-blue-500/10 text-blue-300"
-                    : "border-white/10 bg-[#252526] text-slate-300"
+                    : "border-[#334155] bg-[#0f172a] text-slate-300"
                 }`}
               >
                 Private
@@ -142,7 +142,7 @@ const CreateRoom = () => {
                 className={`rounded-lg border px-4 py-2.5 text-sm transition ${
                   visibility === "public"
                     ? "border-blue-400 bg-blue-500/10 text-blue-300"
-                    : "border-white/10 bg-[#252526] text-slate-300"
+                    : "border-[#334155] bg-[#0f172a] text-slate-300"
                 }`}
               >
                 Public
@@ -172,7 +172,7 @@ const CreateRoom = () => {
 
                 setMaxParticipants(clamped);
               }}
-              className="w-full rounded-lg border border-white/15 bg-[#252526] px-3 py-2.5 text-white outline-none transition focus:border-blue-400"
+              className="w-full rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-2.5 text-white outline-none transition focus:border-[#3b82f6]"
             />
           </label>
 
@@ -194,7 +194,7 @@ const CreateRoom = () => {
                 <button
                   key={room.roomId}
                   onClick={() => openRecentRoom(room.roomId)}
-                  className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-[#252526] p-3 transition hover:border-blue-400/60"
+                  className="flex w-full items-center justify-between rounded-lg border border-[#334155] bg-[#0f172a] p-3 transition hover:border-blue-400/60"
                 >
                   <div className="text-left">
                     <p className="font-semibold uppercase tracking-wide">{room.roomId}</p>

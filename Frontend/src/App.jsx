@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import CreateRoom from "./pages/CreateRoom";
 import JoinRoom from "./pages/JoinRoom";
 import EditorRoom from "./pages/EditorRoom";
+import Profile from "./pages/Profile";
 import { isAuthenticated } from "./utils/helpers";
 
 const ProtectedRoute = ({ children }) => {
@@ -80,6 +81,15 @@ function App() {
           element={
             <ProtectedRoute>
               <EditorRoom />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />

@@ -121,8 +121,8 @@ const ChatBox = ({ roomId, user }) => {
   };
 
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-xl border border-white/10 bg-[#1f2129]">
-      <header className="border-b border-white/10 px-4 py-3">
+    <section className="flex h-full min-h-0 flex-col rounded-xl border border-[#334155] bg-[#0f172a]">
+      <header className="border-b border-[#334155] px-4 py-3">
         <h3 className="text-sm font-semibold text-white">Room Chat</h3>
       </header>
 
@@ -130,7 +130,7 @@ const ChatBox = ({ roomId, user }) => {
         {loading && <Loader label="Loading chat..." />}
 
         {!loading && messages.length === 0 && (
-          <p className="rounded-lg border border-white/10 bg-[#252526] p-3 text-sm text-slate-400">
+          <p className="rounded-lg border border-[#334155] bg-[#1e293b] p-3 text-sm text-slate-400">
             No messages yet. Start the conversation.
           </p>
         )}
@@ -145,14 +145,14 @@ const ChatBox = ({ roomId, user }) => {
           ))}
       </div>
 
-      <div className="border-t border-white/10 p-3">
+      <div className="border-t border-[#334155] p-3">
         <div className="flex items-end gap-2">
           <textarea
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             placeholder="Type a message..."
             rows={2}
-            className="min-h-[54px] flex-1 resize-none rounded-lg border border-white/15 bg-[#252526] px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400"
+            className="min-h-[54px] flex-1 resize-none rounded-lg border border-[#334155] bg-[#1e293b] px-3 py-2 text-sm text-white outline-none transition focus:border-[#3b82f6]"
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();

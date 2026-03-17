@@ -48,6 +48,11 @@ export const joinRoom = async (roomId) => {
   return response.data;
 };
 
+export const getCurrentUser = async () => {
+  const response = await api.get("/users/me");
+  return response.data;
+};
+
 export const getRoomMessages = async (roomId) => {
   const response = await api.get(`/messages/${roomId}`);
   return response.data;

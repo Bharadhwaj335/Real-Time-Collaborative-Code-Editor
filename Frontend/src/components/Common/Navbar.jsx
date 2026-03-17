@@ -1,56 +1,91 @@
-import { Link } from "react-router-dom";
-import { FaShareAlt, FaSignOutAlt, FaUsers } from "react-icons/fa";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { FaChevronDown, FaUsers } from "react-icons/fa";
+import Avatar from "./Avatar";
+
+const navItems = [
+  { label: "Home", to: "/home" },
+  { label: "Create Room", to: "/create-room" },
+  { label: "Join Room", to: "/join-room" }
+];
 
 const Navbar = ({
   roomId,
   connectedUsers,
   isConnected,
-  onShare,
   onLogout,
   userName,
   publicMode = false
 }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const menuRef = useRef(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const showConnection = typeof isConnected === "boolean";
   const showUsers = typeof connectedUsers === "number";
-  const showPrivateNavigation = !publicMode;
+  const userLabel = userName || "Student";
+
+  const isEditorPage = useMemo(() => location.pathname.startsWith("/room/"), [location.pathname]);
+
+  useEffect(() => {
+    if (!isMenuOpen) return undefined;
+
+    const handleOutside = (event) => {
+      if (!menuRef.current || menuRef.current.contains(event.target)) {
+        return;
+      }
+
+      setIsMenuOpen(false);
+    };
+
+    window.addEventListener("mousedown", handleOutside);
+    return () => {
+      window.removeEventListener("mousedown", handleOutside);
+    };
+  }, [isMenuOpen]);
+
+  const navigateTo = (path) => {
+    setIsMenuOpen(false);
+    navigate(path);
+  };
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#1b1d24] px-4 py-3 text-white sm:px-6">
-      <div className="flex items-center gap-3">
-        <Link to="/home" className="text-xl font-bold tracking-tight text-blue-400">
+    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#334155] bg-[#1e293b] px-4 py-3 text-white sm:px-6">
+      <div className="flex min-w-0 items-center gap-3">
+        <Link to="/home" className="text-xl font-bold tracking-tight text-[#3b82f6]">
           CodeCollab
         </Link>
 
-        {showPrivateNavigation && (
-          <nav className="hidden items-center gap-1 rounded-lg border border-white/10 bg-[#252526] p-1 md:flex">
-            <Link
-              to="/home"
-              className="rounded-md px-2.5 py-1 text-xs text-slate-200 transition hover:bg-white/10"
-            >
-              Home
-            </Link>
-            <Link
-              to="/create-room"
-              className="rounded-md px-2.5 py-1 text-xs text-slate-200 transition hover:bg-white/10"
-            >
-              Create Room
-            </Link>
-            <Link
-              to="/join-room"
-              className="rounded-md px-2.5 py-1 text-xs text-slate-200 transition hover:bg-white/10"
-            >
-              Join Room
-            </Link>
+        {!publicMode && (
+          <nav className="hidden items-center gap-1 rounded-xl border border-[#334155] bg-[#0f172a] p-1 md:flex">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.to;
+
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                    isActive
+                      ? "bg-[#3b82f6]/20 text-blue-200"
+                      : "text-slate-200 hover:bg-white/10"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         )}
 
-        {roomId && (
-          <div className="rounded-full border border-white/15 bg-[#252526] px-3 py-1 text-xs uppercase tracking-wide text-slate-300">
+        {roomId && isEditorPage && (
+          <div className="rounded-full border border-[#334155] bg-[#0f172a] px-3 py-1 text-xs uppercase tracking-wide text-slate-300">
             Room {roomId}
           </div>
         )}
 
-        {showConnection && (
+        {showConnection && isEditorPage && (
           <div
             className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${
               isConnected ? "bg-emerald-500/10 text-emerald-300" : "bg-amber-500/10 text-amber-300"
@@ -71,48 +106,63 @@ const Navbar = ({
           <>
             <Link
               to="/login"
-              className="rounded-lg border border-white/10 bg-[#252526] px-3 py-1.5 text-sm text-slate-200 transition hover:border-blue-400/50"
+              className="rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-1.5 text-sm text-slate-200 transition hover:border-[#3b82f6]/50"
             >
               Login
             </Link>
             <Link
               to="/register"
-              className="rounded-lg border border-white/10 bg-[#252526] px-3 py-1.5 text-sm text-slate-200 transition hover:border-blue-400/50"
+              className="rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-1.5 text-sm text-slate-200 transition hover:border-[#3b82f6]/50"
             >
               Register
             </Link>
           </>
         ) : (
-          <span className="rounded-full bg-[#252526] px-3 py-1 text-xs text-slate-300">
-            {userName || "Student"}
-          </span>
-        )}
+          <>
+            {showUsers && isEditorPage && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#334155] bg-[#0f172a] px-3 py-1 text-xs text-slate-200">
+                <FaUsers className="text-[#3b82f6]" />
+                {connectedUsers} online
+              </span>
+            )}
 
-        {showUsers && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#252526] px-3 py-1 text-xs text-slate-200">
-            <FaUsers className="text-blue-400" />
-            {connectedUsers} online
-          </span>
-        )}
+            <div ref={menuRef} className="relative">
+              <button
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#334155] bg-[#0f172a] px-2 py-1.5 text-sm text-slate-200 transition hover:border-[#3b82f6]/50"
+              >
+                <Avatar name={userLabel} size="sm" />
+                <span className="max-w-[130px] truncate text-xs font-medium">{userLabel}</span>
+                <FaChevronDown className="text-[10px] text-slate-400" />
+              </button>
 
-        {onShare && (
-          <button
-            onClick={onShare}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#252526] px-3 py-1.5 text-sm text-slate-200 transition hover:border-blue-400/50"
-          >
-            <FaShareAlt className="text-blue-400" />
-            Share
-          </button>
-        )}
-
-        {!publicMode && onLogout && (
-          <button
-            onClick={onLogout}
-            className="inline-flex items-center gap-2 rounded-lg border border-rose-400/40 bg-rose-500/10 px-3 py-1.5 text-sm text-rose-200 transition hover:bg-rose-500/20"
-          >
-            <FaSignOutAlt />
-            Logout
-          </button>
+              {isMenuOpen && (
+                <div className="absolute right-0 z-40 mt-2 w-44 rounded-xl border border-[#334155] bg-[#0f172a] p-1 shadow-xl">
+                  <button
+                    onClick={() => navigateTo("/profile")}
+                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10"
+                  >
+                    Profile
+                  </button>
+                  <button
+                    onClick={() => navigateTo("/profile?tab=rooms")}
+                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10"
+                  >
+                    My Rooms
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onLogout?.();
+                    }}
+                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 transition hover:bg-rose-500/20"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </header>

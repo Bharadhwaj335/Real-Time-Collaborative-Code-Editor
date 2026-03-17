@@ -1,8 +1,8 @@
 const variantClasses = {
 	primary:
-		"bg-blue-500 hover:bg-blue-400 text-white border border-blue-400/40 shadow-[0_0_20px_rgba(59,130,246,0.25)]",
-	secondary: "bg-[#252526] hover:bg-[#2c2c2f] text-white border border-white/10",
-	ghost: "bg-transparent hover:bg-white/5 text-slate-200 border border-white/10",
+		"bg-[#3b82f6] hover:bg-[#2563eb] text-white border border-[#3b82f6]/40 shadow-[0_0_20px_rgba(59,130,246,0.25)]",
+	secondary: "bg-[#1e293b] hover:bg-[#334155] text-white border border-[#334155]",
+	ghost: "bg-transparent hover:bg-white/5 text-slate-200 border border-[#334155]",
 	danger: "bg-rose-600 hover:bg-rose-500 text-white border border-rose-400/40"
 };
 

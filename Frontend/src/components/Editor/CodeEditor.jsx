@@ -2,14 +2,16 @@ import { useEffect, useRef } from "react";
 import Editor from "@monaco-editor/react";
 
 const editorOptions = {
-  minimap: { enabled: false },
+  minimap: { enabled: true },
   fontSize: 14,
   fontFamily: "JetBrains Mono, Consolas, monospace",
+  fontLigatures: true,
   lineNumbersMinChars: 3,
   padding: { top: 12 },
   smoothScrolling: true,
   contextmenu: true,
   automaticLayout: true,
+  autoIndent: "full",
   wordWrap: "on",
   scrollBeyondLastLine: false
 };
@@ -40,7 +42,7 @@ const CodeEditor = ({
   onCodeChange,
   onCursorMove,
   activityItems = [],
-  activeFileId,
+  activeFileName,
   readOnly = false
 }) => {
   const editorRef = useRef(null);
@@ -90,7 +92,9 @@ const CodeEditor = ({
     const model = editor.getModel();
     if (!model) return;
 
-    const fileActivity = (activityItems || []).filter((item) => item.fileId === activeFileId).slice(0, 8);
+    const fileActivity = (activityItems || [])
+      .filter((item) => item.fileName === activeFileName)
+      .slice(0, 8);
 
     const decorations = fileActivity.flatMap((item, index) => {
       const changes = Array.isArray(item.changes) ? item.changes : [];
@@ -120,7 +124,7 @@ const CodeEditor = ({
     });
 
     decorationsRef.current = editor.deltaDecorations(decorationsRef.current, decorations);
-  }, [activeFileId, activityItems]);
+  }, [activeFileName, activityItems]);
 
   return (
     <Editor

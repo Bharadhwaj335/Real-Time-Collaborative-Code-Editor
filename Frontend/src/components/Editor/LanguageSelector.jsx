@@ -10,7 +10,7 @@ const LanguageSelector = ({ value, onChange, className = "" }) => {
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-lg border border-white/15 bg-[#252526] px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400"
+        className="rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#3b82f6]"
       >
         {LANGUAGES.map((item) => (
           <option key={item.value} value={item.value}>

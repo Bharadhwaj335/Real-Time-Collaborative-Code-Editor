@@ -15,13 +15,15 @@ const MessageItem = ({ message, isOwnMessage }) => {
       {!isOwnMessage && <Avatar name={senderName} size="sm" />}
 
       <div
-        className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
+        className={`max-w-[82%] rounded-xl border px-3 py-2 text-sm ${
           isOwnMessage
-            ? "bg-blue-500/20 text-blue-50"
-            : "bg-[#252526] text-slate-100"
+            ? "border-[#3b82f6]/50 bg-[#3b82f6]/20 text-blue-50"
+            : "border-[#334155] bg-[#1e293b] text-slate-100"
         }`}
       >
-        {!isOwnMessage && <p className="mb-1 text-xs font-semibold text-blue-300">{senderName}</p>}
+        <p className={`mb-1 text-xs font-semibold ${isOwnMessage ? "text-blue-200" : "text-slate-300"}`}>
+          {isOwnMessage ? "You" : senderName}
+        </p>
 
         <p className="leading-relaxed">{text}</p>
 
