@@ -59,6 +59,11 @@ const roomSchema = new Schema(
             uppercase: true,
             trim: true,
         },
+        name: {
+            type: String,
+            trim: true,
+            default: "",
+        },
         roomName: {
             type: String,
             trim: true,
@@ -106,5 +111,15 @@ const roomSchema = new Schema(
         versionKey: false,
     }
 );
+
+roomSchema.pre("validate", function normalizeRoomName() {
+    if (!this.name && this.roomName) {
+        this.name = this.roomName;
+    }
+
+    if (!this.roomName && this.name) {
+        this.roomName = this.name;
+    }
+});
 
 export const RoomModel = model("Room", roomSchema);

@@ -1,4 +1,5 @@
 const RoomHeader = ({
+	roomName,
 	roomId,
 	language,
 	isConnected,
@@ -8,7 +9,10 @@ const RoomHeader = ({
 	return (
 		<div className="rounded-xl border border-white/10 bg-[#252526] p-4">
 			<p className="text-xs uppercase tracking-[0.2em] text-slate-400">Room</p>
-			<p className="mt-2 font-semibold uppercase tracking-wide text-white">{roomId}</p>
+			<p className="mt-2 text-base font-bold tracking-wide text-white">
+				{roomName || roomId || "Untitled Room"}
+			</p>
+			<p className="mt-1 text-xs uppercase tracking-wide text-slate-400">ID: {roomId}</p>
 
 			<p className="mt-2 text-xs text-slate-300">
 				Participants: {currentParticipants || 0}/{maxParticipants || 0}

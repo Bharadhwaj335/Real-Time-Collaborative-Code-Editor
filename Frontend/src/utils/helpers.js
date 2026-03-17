@@ -139,6 +139,7 @@ export const saveRecentRoom = (room) => {
 	const updated = [
 		{
 			roomId: room.roomId,
+			roomName: room.roomName || room.name || "",
 			language: room.language || "javascript",
 			touchedAt: new Date().toISOString()
 		},

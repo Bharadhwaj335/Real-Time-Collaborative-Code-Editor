@@ -1,21 +1,11 @@
 import { RoomModel } from "../Models/room.js";
 import { generateRoomId } from "../utils/generateRoomId.js";
+import { getExtensionFromLanguage, normalizeLanguage } from "../utils/language.js";
 
 const normalizeRoomId = (value = "") => value.trim().toUpperCase();
 const DEFAULT_MAX_PARTICIPANTS = 8;
 const MIN_PARTICIPANTS = 2;
 const MAX_PARTICIPANTS = 50;
-
-const LANGUAGE_FILE_EXTENSION = {
-  javascript: "js",
-  typescript: "ts",
-  python: "py",
-  java: "java",
-  cpp: "cpp",
-  c: "c",
-  go: "go",
-  rust: "rs",
-};
 
 const clampParticipantLimit = (value) => {
   const parsed = Number(value);
@@ -28,8 +18,8 @@ const clampParticipantLimit = (value) => {
 };
 
 const createInitialFile = (language = "javascript", code = "") => {
-  const normalizedLanguage = String(language || "javascript").toLowerCase();
-  const extension = LANGUAGE_FILE_EXTENSION[normalizedLanguage] || "txt";
+  const normalizedLanguage = normalizeLanguage(language);
+  const extension = getExtensionFromLanguage(normalizedLanguage);
 
   return {
     id: "main",
@@ -66,8 +56,8 @@ const generateUniqueRoomId = async () => {
 
 export const createRoom = async (req, res, next) => {
   try {
-    const roomName = (req.body?.roomName || "").trim();
-    const language = (req.body?.language || "javascript").trim().toLowerCase();
+    const roomName = (req.body?.name || req.body?.roomName || "").trim();
+    const language = normalizeLanguage(req.body?.language, "javascript");
     const visibility = req.body?.visibility === "public" ? "public" : "private";
     const maxParticipants = clampParticipantLimit(req.body?.maxParticipants);
     const initialCode = typeof req.body?.code === "string" ? req.body.code : "";
@@ -82,6 +72,7 @@ export const createRoom = async (req, res, next) => {
 
     const room = await RoomModel.create({
       roomId,
+      name: roomName,
       roomName,
       language,
       code: initialFile.code,
@@ -117,12 +108,15 @@ export const getRoom = async (req, res, next) => {
     }
 
     const roomObject = room.toObject();
+    const roomName = roomObject.name || roomObject.roomName || "";
     const normalizedUsers = normalizeRoomUsers(roomObject.users);
     const currentParticipants = normalizedUsers.length;
     const maxParticipants = Number(roomObject.maxParticipants) || DEFAULT_MAX_PARTICIPANTS;
 
     return res.status(200).json({
       ...roomObject,
+      name: roomName,
+      roomName,
       users: normalizedUsers,
       currentParticipants,
       maxParticipants,

@@ -5,6 +5,7 @@ import {
   DEFAULT_LANGUAGE,
   SOCKET_EVENTS
 } from "../utils/constants";
+import { getLanguageFromFileName } from "../utils/getLanguageFromExtension";
 
 const MAX_RECENT_CHANGES = 25;
 
@@ -16,11 +17,22 @@ const createDefaultFile = ({
 } = {}) => ({
   id,
   name,
-  language,
+  language: getLanguageFromFileName(name, language),
   code,
   lastEditedBy: "",
   lastEditedAt: null
 });
+
+const sanitizeClientFileName = (value = "") => {
+  const normalized = String(value || "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9._-]/g, "")
+    .replace(/^\.+/, "")
+    .slice(0, 40);
+
+  return normalized || "untitled.txt";
+};
 
 const makeUniqueName = (desiredName, existingNames) => {
   const cleanBase = (desiredName || "untitled.txt").trim() || "untitled.txt";
@@ -59,7 +71,10 @@ const normalizeServerFiles = (incomingFiles = [], fallbackLanguage = DEFAULT_LAN
     const normalizedFile = {
       id: item?.id || uniqueName,
       name: uniqueName,
-      language: (item?.language || fallbackLanguage || DEFAULT_LANGUAGE).toLowerCase(),
+      language: getLanguageFromFileName(
+        uniqueName,
+        item?.language || fallbackLanguage || DEFAULT_LANGUAGE
+      ),
       code: typeof item?.code === "string" ? item.code : "",
       lastEditedBy: item?.lastEditedBy || "",
       lastEditedAt: item?.lastEditedAt || null
@@ -212,22 +227,95 @@ const useEditor = ({ roomId, user }) => {
   const setActiveFileName = (nextFileName) => {
     if (!nextFileName) return;
 
+    const currentState = stateRef.current;
+    const nextFile = currentState.files[nextFileName];
+
+    if (!nextFile) {
+      return;
+    }
+
+    const inferredLanguage = getLanguageFromFileName(
+      nextFile.name,
+      nextFile.language || DEFAULT_LANGUAGE
+    );
+
     setEditorState((prev) => {
       if (!prev.files[nextFileName]) return prev;
+
       return {
         ...prev,
+        files: {
+          ...prev.files,
+          [nextFileName]: {
+            ...prev.files[nextFileName],
+            language: inferredLanguage
+          }
+        },
         activeFileName: nextFileName
       };
+    });
+
+    if (!roomId || !userId) {
+      return;
+    }
+
+    socket.emit(SOCKET_EVENTS.FILE_CHANGE, {
+      roomId,
+      fileId: nextFile.id,
+      fileName: nextFile.name,
+      language: inferredLanguage,
+      userId,
+      userName
     });
   };
 
   const createFile = ({ fileName, language: nextLanguage, initialCode = "" }) => {
     if (!roomId || !userId) return;
 
+    const currentState = stateRef.current;
+    const existingNames = new Set(Object.keys(currentState.files).map((name) => name.toLowerCase()));
+    const safeName = sanitizeClientFileName(fileName);
+    const uniqueName = makeUniqueName(safeName, existingNames);
+    const inferredLanguage = getLanguageFromFileName(
+      uniqueName,
+      nextLanguage || currentState.files[currentState.activeFileName]?.language || DEFAULT_LANGUAGE
+    );
+
+    setEditorState((prev) => {
+      if (prev.files[uniqueName]) {
+        return {
+          ...prev,
+          activeFileName: uniqueName
+        };
+      }
+
+      const optimisticFile = {
+        id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: uniqueName,
+        language: inferredLanguage,
+        code: initialCode,
+        lastEditedBy: userName,
+        lastEditedAt: new Date().toISOString()
+      };
+
+      return {
+        files: {
+          ...prev.files,
+          [uniqueName]: optimisticFile
+        },
+        fileOrder: [...prev.fileOrder, uniqueName],
+        fileIdToName: {
+          ...prev.fileIdToName,
+          [optimisticFile.id]: uniqueName
+        },
+        activeFileName: uniqueName
+      };
+    });
+
     socket.emit(SOCKET_EVENTS.FILE_CREATE, {
       roomId,
-      fileName,
-      language: nextLanguage,
+      fileName: uniqueName,
+      language: inferredLanguage,
       code: initialCode,
       userId,
       userName
@@ -322,7 +410,7 @@ const useEditor = ({ roomId, user }) => {
         const previousFile = prev.files[targetName] || {
           id: payload?.fileId || targetName,
           name: targetName,
-          language: (payload?.language || DEFAULT_LANGUAGE).toLowerCase(),
+          language: getLanguageFromFileName(targetName, payload?.language || DEFAULT_LANGUAGE),
           code: "",
           lastEditedBy: "",
           lastEditedAt: null
@@ -332,7 +420,10 @@ const useEditor = ({ roomId, user }) => {
           ...previousFile,
           id: payload?.fileId || previousFile.id,
           name: targetName,
-          language: (payload?.language || previousFile.language || DEFAULT_LANGUAGE).toLowerCase(),
+          language: getLanguageFromFileName(
+            targetName,
+            payload?.language || previousFile.language || DEFAULT_LANGUAGE
+          ),
           code: typeof payload?.code === "string" ? payload.code : previousFile.code,
           lastEditedBy: payload?.userName || "Collaborator",
           lastEditedAt: payload?.timestamp || new Date().toISOString()
@@ -379,6 +470,70 @@ const useEditor = ({ roomId, user }) => {
       });
     };
 
+    const handleFileChange = (payload) => {
+      if (!payload) return;
+
+      setEditorState((prev) => {
+        const fileNameFromId = payload?.fileId ? prev.fileIdToName[payload.fileId] : "";
+        const targetName = fileNameFromId || payload?.fileName;
+
+        if (!targetName) {
+          return prev;
+        }
+
+        if (!prev.files[targetName]) {
+          const inferredLanguage = getLanguageFromFileName(
+            targetName,
+            payload?.language || DEFAULT_LANGUAGE
+          );
+
+          const syntheticFile = {
+            id: payload?.fileId || targetName,
+            name: targetName,
+            language: inferredLanguage,
+            code: "",
+            lastEditedBy: "",
+            lastEditedAt: null
+          };
+
+          const nextOrder = prev.fileOrder.includes(targetName)
+            ? prev.fileOrder
+            : [...prev.fileOrder, targetName];
+
+          return {
+            files: {
+              ...prev.files,
+              [targetName]: syntheticFile
+            },
+            fileOrder: nextOrder,
+            fileIdToName: {
+              ...prev.fileIdToName,
+              ...(payload?.fileId ? { [payload.fileId]: targetName } : {})
+            },
+            activeFileName: targetName
+          };
+        }
+
+        const file = prev.files[targetName];
+        const nextLanguage = getLanguageFromFileName(
+          file.name,
+          payload?.language || file.language || DEFAULT_LANGUAGE
+        );
+
+        return {
+          ...prev,
+          files: {
+            ...prev.files,
+            [targetName]: {
+              ...file,
+              language: nextLanguage
+            }
+          },
+          activeFileName: targetName
+        };
+      });
+    };
+
     const handleCursorUpdate = (payload) => {
       if (!payload?.userId || payload.userId === userId) return;
 
@@ -414,6 +569,7 @@ const useEditor = ({ roomId, user }) => {
     socket.on(SOCKET_EVENTS.ROOM_STATE, handleRoomState);
     socket.on(SOCKET_EVENTS.FILE_LIST_UPDATE, handleFileListUpdate);
     socket.on(SOCKET_EVENTS.CODE_UPDATE, handleCodeUpdate);
+    socket.on(SOCKET_EVENTS.FILE_CHANGE, handleFileChange);
     socket.on(SOCKET_EVENTS.CURSOR_UPDATE, handleCursorUpdate);
     socket.on(SOCKET_EVENTS.USER_LEFT, handleUserLeft);
 
@@ -421,6 +577,7 @@ const useEditor = ({ roomId, user }) => {
       socket.off(SOCKET_EVENTS.ROOM_STATE, handleRoomState);
       socket.off(SOCKET_EVENTS.FILE_LIST_UPDATE, handleFileListUpdate);
       socket.off(SOCKET_EVENTS.CODE_UPDATE, handleCodeUpdate);
+      socket.off(SOCKET_EVENTS.FILE_CHANGE, handleFileChange);
       socket.off(SOCKET_EVENTS.CURSOR_UPDATE, handleCursorUpdate);
       socket.off(SOCKET_EVENTS.USER_LEFT, handleUserLeft);
     };

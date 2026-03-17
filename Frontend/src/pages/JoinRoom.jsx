@@ -36,10 +36,12 @@ const JoinRoom = () => {
     try {
       const response = await joinRoom(roomId);
       const language = response?.language || "javascript";
+      const roomName = response?.name || response?.roomName || `Room-${roomId.slice(0, 5)}`;
 
       saveRecentRoom({
         roomId,
-        roomName: `Room-${roomId.slice(0, 5)}`,
+        roomName,
+        name: roomName,
         language
       });
 

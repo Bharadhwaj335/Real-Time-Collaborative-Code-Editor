@@ -1,30 +1,19 @@
 import { RoomModel } from "../Models/room.js";
 import { logger } from "../utils/logger.js";
+import {
+  getExtensionFromLanguage,
+  getLanguageFromFileName,
+  normalizeLanguage,
+} from "../utils/language.js";
 
 const normalizeRoomId = (roomId = "") => roomId.trim().toUpperCase();
 const MAX_FILES_PER_ROOM = 25;
-
-const LANGUAGE_FILE_EXTENSION = {
-  javascript: "js",
-  typescript: "ts",
-  python: "py",
-  java: "java",
-  cpp: "cpp",
-  c: "c",
-  go: "go",
-  rust: "rs",
-};
-
-const normalizeLanguage = (value = "", fallback = "javascript") => {
-  const normalized = String(value || fallback).trim().toLowerCase();
-  return normalized || fallback;
-};
 
 const createFileId = () => `file-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 const createFallbackFile = (language = "javascript", code = "") => {
   const normalizedLanguage = normalizeLanguage(language);
-  const extension = LANGUAGE_FILE_EXTENSION[normalizedLanguage] || "txt";
+  const extension = getExtensionFromLanguage(normalizedLanguage);
 
   return {
     id: "main",
@@ -74,7 +63,7 @@ const normalizeChanges = (changes = []) => {
 
 const sanitizeFileName = (inputName = "", language = "javascript") => {
   const normalizedLanguage = normalizeLanguage(language);
-  const extension = LANGUAGE_FILE_EXTENSION[normalizedLanguage] || "txt";
+  const extension = getExtensionFromLanguage(normalizedLanguage);
   const baseName = String(inputName || "")
     .trim()
     .replace(/\s+/g, "-")
@@ -144,7 +133,7 @@ export const registerCodeSyncSocket = (io, socket) => {
         return;
       }
 
-      const { files, activeFileId, changed } = ensureRoomFiles(room);
+      const { files, activeFileId } = ensureRoomFiles(room);
 
       let targetFile = files.find((file) => file.id === payload.fileId);
       let createdNewFileFromCodeChange = false;
@@ -153,11 +142,12 @@ export const registerCodeSyncSocket = (io, socket) => {
         const fallbackLanguage = normalizeLanguage(payload.language, room.language || "javascript");
         const desiredName = sanitizeFileName(payload.fileName, fallbackLanguage);
         const uniqueName = ensureUniqueFileName(files, desiredName);
+        const inferredLanguage = getLanguageFromFileName(uniqueName, fallbackLanguage);
 
         targetFile = {
           id: payload.fileId || createFileId(),
           name: uniqueName,
-          language: fallbackLanguage,
+          language: inferredLanguage,
           code: typeof payload.code === "string" ? payload.code : "",
           lastEditedBy: payload.userName || payload.userId || "Collaborator",
           lastEditedAt: new Date(),
@@ -167,7 +157,11 @@ export const registerCodeSyncSocket = (io, socket) => {
         createdNewFileFromCodeChange = true;
       }
 
-      const nextLanguage = normalizeLanguage(payload.language, targetFile.language || room.language);
+      const languageFallback = normalizeLanguage(
+        payload.language,
+        targetFile.language || room.language || "javascript"
+      );
+      const nextLanguage = getLanguageFromFileName(targetFile.name, languageFallback);
 
       if (typeof payload.code === "string") {
         targetFile.code = payload.code;
@@ -181,18 +175,14 @@ export const registerCodeSyncSocket = (io, socket) => {
       room.code = targetFile.code || "";
       room.activeFileId = targetFile.id || activeFileId;
 
-      if (changed || createdNewFileFromCodeChange) {
-        await room.save();
+      await room.save();
 
-        if (createdNewFileFromCodeChange) {
-          io.to(roomId).emit("FILE_LIST_UPDATE", {
-            roomId,
-            files: toClientFiles(room.files),
-            activeFileId: room.activeFileId,
-          });
-        }
-      } else {
-        await room.save();
+      if (createdNewFileFromCodeChange) {
+        io.to(roomId).emit("FILE_LIST_UPDATE", {
+          roomId,
+          files: toClientFiles(room.files),
+          activeFileId: room.activeFileId,
+        });
       }
 
       const normalizedChanges = normalizeChanges(payload.changes);
@@ -241,15 +231,16 @@ export const registerCodeSyncSocket = (io, socket) => {
         return;
       }
 
-      const nextLanguage = normalizeLanguage(payload.language, room.language || "javascript");
-      const desiredName = sanitizeFileName(payload.fileName, nextLanguage);
+      const requestedLanguage = normalizeLanguage(payload.language, room.language || "javascript");
+      const desiredName = sanitizeFileName(payload.fileName, requestedLanguage);
       const uniqueName = ensureUniqueFileName(files, desiredName);
+      const inferredLanguage = getLanguageFromFileName(uniqueName, requestedLanguage);
       const now = new Date();
 
       const newFile = {
         id: createFileId(),
         name: uniqueName,
-        language: nextLanguage,
+        language: inferredLanguage,
         code: typeof payload.code === "string" ? payload.code : "",
         lastEditedBy: payload.userName || payload.userId || "Collaborator",
         lastEditedAt: now,
@@ -266,10 +257,18 @@ export const registerCodeSyncSocket = (io, socket) => {
         roomId,
         files: toClientFiles(room.files),
         activeFileId: room.activeFileId,
+        language: newFile.language,
         createdBy: {
           id: payload.userId,
           name: payload.userName,
         },
+      });
+
+      io.to(roomId).emit("FILE_CHANGE", {
+        roomId,
+        fileId: newFile.id,
+        fileName: newFile.name,
+        language: newFile.language,
       });
 
       if (changed) {
@@ -287,6 +286,60 @@ export const registerCodeSyncSocket = (io, socket) => {
         roomId: normalizeRoomId(payload.roomId || ""),
         message: "Unable to create file right now.",
       });
+    }
+  });
+
+  socket.on("FILE_CHANGE", async (payload = {}) => {
+    try {
+      const roomId = normalizeRoomId(payload.roomId || "");
+
+      if (!roomId) {
+        return;
+      }
+
+      const room = await RoomModel.findOne({ roomId });
+
+      if (!room) {
+        return;
+      }
+
+      const { files, activeFileId } = ensureRoomFiles(room);
+      const targetFile = files.find((file) => {
+        if (payload.fileId && file.id === payload.fileId) {
+          return true;
+        }
+
+        if (payload.fileName) {
+          return String(file.name || "").toLowerCase() === String(payload.fileName || "").toLowerCase();
+        }
+
+        return false;
+      });
+
+      if (!targetFile) {
+        return;
+      }
+
+      const nextLanguage = getLanguageFromFileName(
+        targetFile.name,
+        normalizeLanguage(payload.language, targetFile.language || room.language || "javascript")
+      );
+
+      targetFile.language = nextLanguage;
+      room.activeFileId = targetFile.id || activeFileId;
+      room.language = nextLanguage;
+      room.code = targetFile.code || "";
+
+      await room.save();
+
+      io.to(roomId).emit("FILE_CHANGE", {
+        roomId,
+        fileId: targetFile.id,
+        fileName: targetFile.name,
+        language: targetFile.language,
+      });
+    } catch (error) {
+      logger.error("FILE_CHANGE failed", error);
     }
   });
 };

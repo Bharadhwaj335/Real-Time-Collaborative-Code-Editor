@@ -37,14 +37,20 @@ const CreateRoom = () => {
     setLoading(true);
 
     try {
+      const trimmedRoomName = roomName.trim();
       const response = await createRoom({
-        roomName,
+        name: trimmedRoomName,
+        roomName: trimmedRoomName,
         language,
         visibility,
         maxParticipants
       });
 
       const roomId = response?.roomId || response?.data?.roomId;
+      const roomData = response?.data || {};
+      const resolvedLanguage = roomData?.language || language;
+      const resolvedRoomName =
+        roomData?.name || roomData?.roomName || trimmedRoomName || `Room-${roomId?.slice(0, 5) || "new"}`;
 
       if (!roomId) {
         throw new Error("Room id missing from response");
@@ -52,12 +58,13 @@ const CreateRoom = () => {
 
       saveRecentRoom({
         roomId,
-        roomName: roomName || `Room-${roomId.slice(0, 5)}`,
-        language
+        roomName: resolvedRoomName,
+        name: resolvedRoomName,
+        language: resolvedLanguage
       });
 
       toast.success("Room created 🚀");
-      navigate(`/room/${roomId}`, { state: { language } });
+      navigate(`/room/${roomId}`, { state: { language: resolvedLanguage } });
 
     } catch (error) {
       toast.error(error?.message || "Failed to create room.");

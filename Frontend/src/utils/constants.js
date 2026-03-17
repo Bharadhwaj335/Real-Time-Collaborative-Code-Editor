@@ -16,8 +16,11 @@ export const LANGUAGES = [
 	{ label: "Python", value: "python" },
 	{ label: "Java", value: "java" },
 	{ label: "C++", value: "cpp" },
+	{ label: "C", value: "c" },
 	{ label: "Go", value: "go" },
-	{ label: "Rust", value: "rust" }
+	{ label: "Rust", value: "rust" },
+	{ label: "HTML", value: "html" },
+	{ label: "CSS", value: "css" }
 ];
 
 export const DEFAULT_LANGUAGE = LANGUAGES[0].value;
@@ -29,6 +32,7 @@ export const SOCKET_EVENTS = {
 	LEAVE_ROOM: "LEAVE_ROOM",
 	CODE_CHANGE: "CODE_CHANGE",
 	CODE_UPDATE: "CODE_UPDATE",
+	FILE_CHANGE: "FILE_CHANGE",
 	FILE_CREATE: "FILE_CREATE",
 	FILE_CREATE_ERROR: "FILE_CREATE_ERROR",
 	FILE_LIST_UPDATE: "FILE_LIST_UPDATE",

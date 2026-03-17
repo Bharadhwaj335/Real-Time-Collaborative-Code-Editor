@@ -6,7 +6,7 @@ import Avatar from "../components/Common/Avatar";
 import Button from "../components/Common/Button";
 import Loader from "../components/Common/Loader";
 import { disconnectSocket } from "../services/socket";
-import { getCurrentUser, joinRoom } from "../services/api";
+import { getCurrentUser, joinRoom, updateProfile } from "../services/api";
 import {
   clearAuthStorage,
   getRecentRooms,
@@ -14,6 +14,8 @@ import {
   saveRecentRoom,
   setStoredUser
 } from "../utils/helpers";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -24,7 +26,9 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [profile, setProfile] = useState(() => getStoredUser() || {});
   const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [recentRooms, setRecentRooms] = useState([]);
 
   useEffect(() => {
@@ -88,7 +92,8 @@ const Profile = () => {
 
   useEffect(() => {
     setEditName(displayName);
-  }, [displayName]);
+    setEditEmail(profile?.email || "");
+  }, [displayName, profile?.email]);
 
   const handleLogout = () => {
     clearAuthStorage();
@@ -96,31 +101,64 @@ const Profile = () => {
     navigate("/login", { replace: true });
   };
 
-  const saveProfileLocally = () => {
-    const trimmed = editName.trim();
+  const saveProfile = async () => {
+    const trimmedName = editName.trim();
+    const trimmedEmail = editEmail.trim().toLowerCase();
 
-    if (!trimmed) {
+    if (!trimmedName) {
       toast.error("Name cannot be empty.");
       return;
     }
 
-    const next = {
-      ...(getStoredUser() || {}),
-      ...profile,
-      name: trimmed
-    };
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
 
-    setStoredUser(next);
-    setProfile(next);
+    setIsSaving(true);
+
+    try {
+      const response = await updateProfile({
+        name: trimmedName,
+        email: trimmedEmail
+      });
+
+      const updatedUser = response?.user || {};
+      const next = {
+        ...(getStoredUser() || {}),
+        ...profile,
+        id: updatedUser?.id || updatedUser?._id || profile?.id,
+        name: updatedUser?.name || trimmedName,
+        email: updatedUser?.email || trimmedEmail
+      };
+
+      setStoredUser(next);
+      setProfile(next);
+      setIsEditing(false);
+      toast.success(response?.message || "Profile updated.");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        "Could not update profile.";
+      toast.error(message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditName(displayName);
+    setEditEmail(profile?.email || "");
     setIsEditing(false);
-    toast.success("Profile updated locally.");
   };
 
   const openRecentRoom = async (roomId) => {
     try {
       const response = await joinRoom(roomId);
       const language = response?.language || "javascript";
-      saveRecentRoom({ roomId, language });
+      const roomName = response?.name || response?.roomName || `Room-${roomId.slice(0, 5)}`;
+      saveRecentRoom({ roomId, roomName, name: roomName, language });
       navigate(`/room/${roomId}`, { state: { language } });
     } catch (error) {
       const message =
@@ -188,14 +226,25 @@ const Profile = () => {
 
                 <div className="rounded-xl border border-[#334155] bg-[#0f172a] p-4">
                   <p className="text-xs uppercase tracking-wide text-slate-400">Email</p>
-                  <p className="mt-2 text-sm text-slate-100">{profile?.email || "No email"}</p>
+                  {isEditing ? (
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={(event) => setEditEmail(event.target.value)}
+                      className="mt-2 w-full rounded-lg border border-[#334155] bg-[#1e293b] px-3 py-2 text-white outline-none transition focus:border-[#3b82f6]"
+                    />
+                  ) : (
+                    <p className="mt-2 text-sm text-slate-100">{profile?.email || "No email"}</p>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   {isEditing ? (
                     <>
-                      <Button onClick={saveProfileLocally}>Save</Button>
-                      <Button variant="secondary" onClick={() => setIsEditing(false)}>
+                      <Button onClick={saveProfile} loading={isSaving} disabled={isSaving}>
+                        Save
+                      </Button>
+                      <Button variant="secondary" onClick={cancelEdit} disabled={isSaving}>
                         Cancel
                       </Button>
                     </>
@@ -220,8 +269,11 @@ const Profile = () => {
                       className="flex w-full items-center justify-between rounded-xl border border-[#334155] bg-[#0f172a] p-4 text-left transition hover:border-[#3b82f6]/70 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]"
                     >
                       <div>
-                        <p className="font-semibold uppercase tracking-wide text-slate-100">
-                          {room.roomId}
+                        <p className="font-semibold tracking-wide text-slate-100">
+                          {room.roomName || room.name || "Untitled Room"}
+                        </p>
+                        <p className="mt-1 text-xs uppercase tracking-wide text-slate-400">
+                          ID: {room.roomId}
                         </p>
                         <p className="mt-1 text-xs text-slate-300">{room.language}</p>
                       </div>

@@ -1,5 +1,6 @@
 import { RoomModel } from "../Models/room.js";
 import { logger } from "../utils/logger.js";
+import { getExtensionFromLanguage, normalizeLanguage } from "../utils/language.js";
 
 const roomUsersStore = new Map();
 const socketMembershipStore = new Map();
@@ -7,20 +8,9 @@ const DEFAULT_MAX_PARTICIPANTS = 8;
 
 const normalizeRoomId = (roomId = "") => roomId.trim().toUpperCase();
 
-const LANGUAGE_FILE_EXTENSION = {
-  javascript: "js",
-  typescript: "ts",
-  python: "py",
-  java: "java",
-  cpp: "cpp",
-  c: "c",
-  go: "go",
-  rust: "rs",
-};
-
 const createFallbackFile = (language = "javascript", code = "") => {
-  const normalizedLanguage = String(language || "javascript").toLowerCase();
-  const extension = LANGUAGE_FILE_EXTENSION[normalizedLanguage] || "txt";
+  const normalizedLanguage = normalizeLanguage(language);
+  const extension = getExtensionFromLanguage(normalizedLanguage);
 
   return {
     id: "main",
@@ -214,7 +204,8 @@ export const registerRoomSocket = (io, socket) => {
 
       socket.emit("ROOM_STATE", {
         roomId,
-        roomName: room.roomName || "",
+        name: room.name || room.roomName || "",
+        roomName: room.roomName || room.name || "",
         visibility: room.visibility || "private",
         language: room.language || "javascript",
         files,

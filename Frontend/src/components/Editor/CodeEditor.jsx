@@ -90,6 +90,23 @@ const CodeEditor = ({
     if (!editor || !monaco) return;
 
     const model = editor.getModel();
+
+    if (!model || !language) return;
+
+    if (typeof model.getLanguageId === "function" && model.getLanguageId() === language) {
+      return;
+    }
+
+    monaco.editor.setModelLanguage(model, language);
+  }, [language]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+
+    if (!editor || !monaco) return;
+
+    const model = editor.getModel();
     if (!model) return;
 
     const fileActivity = (activityItems || [])

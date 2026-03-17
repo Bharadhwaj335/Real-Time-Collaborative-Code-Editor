@@ -53,6 +53,11 @@ export const getCurrentUser = async () => {
   return response.data;
 };
 
+export const updateProfile = async (payload = {}) => {
+  const response = await api.put("/users/profile", payload);
+  return response.data;
+};
+
 export const getRoomMessages = async (roomId) => {
   const response = await api.get(`/messages/${roomId}`);
   return response.data;

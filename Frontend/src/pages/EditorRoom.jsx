@@ -9,12 +9,13 @@ import CodeEditor from "../components/Editor/CodeEditor";
 import EditorToolbar from "../components/Editor/EditorToolbar";
 import OutputConsole from "../components/Editor/OutputConsole";
 import CursorOverlay from "../components/Room/CursorOverlay";
+import RoomHeader from "../components/Room/RoomHeader";
 import UserList from "../components/Room/UserList";
 import ChatBox from "../components/Chat/ChatBox";
 import useRoom from "../hooks/useRoom";
 import useEditor from "../hooks/useEditor";
 import useSocket from "../hooks/useSocket";
-import { executeCode } from "../services/api";
+import { executeCode, joinRoom } from "../services/api";
 import { disconnectSocket } from "../services/socket";
 import {
   buildRoomInviteLink,
@@ -110,6 +111,7 @@ const EditorRoom = () => {
   const [sidebarMode, setSidebarMode] = useState("files");
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
   const [newFileName, setNewFileName] = useState("");
+  const [roomDetails, setRoomDetails] = useState(null);
 
   const lastActivityIdRef = useRef("");
 
@@ -139,6 +141,69 @@ const EditorRoom = () => {
       setLanguage(languageFromRoute);
     }
   }, [activeFile?.language, location.state?.language, setLanguage]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadRoomDetails = async () => {
+      try {
+        const response = await joinRoom(roomId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const nextRoomName = response?.name || response?.roomName || "";
+
+        setRoomDetails({
+          ...response,
+          roomId: response?.roomId || roomId,
+          name: nextRoomName,
+          roomName: response?.roomName || nextRoomName
+        });
+      } catch {
+        if (isMounted) {
+          setRoomDetails((prev) =>
+            prev || {
+              roomId,
+              name: "",
+              roomName: ""
+            }
+          );
+        }
+      }
+    };
+
+    if (roomId) {
+      loadRoomDetails();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [roomId]);
+
+  useEffect(() => {
+    const handleRoomState = (payload) => {
+      if (!payload) return;
+
+      const nextRoomName = payload?.name || payload?.roomName || "";
+
+      setRoomDetails((prev) => ({
+        ...prev,
+        ...payload,
+        roomId: payload?.roomId || prev?.roomId || roomId,
+        name: nextRoomName || prev?.name || "",
+        roomName: payload?.roomName || nextRoomName || prev?.roomName || ""
+      }));
+    };
+
+    socket.on(SOCKET_EVENTS.ROOM_STATE, handleRoomState);
+
+    return () => {
+      socket.off(SOCKET_EVENTS.ROOM_STATE, handleRoomState);
+    };
+  }, [roomId, socket]);
 
   useEffect(() => {
     const handleFileCreateError = (payload) => {
@@ -249,7 +314,6 @@ const EditorRoom = () => {
 
     createFile({
       fileName: trimmedName,
-      language,
       initialCode: ""
     });
 
@@ -263,6 +327,9 @@ const EditorRoom = () => {
     disconnectSocket();
     navigate("/login", { replace: true });
   };
+
+  const roomDisplayName =
+    roomDetails?.name || roomDetails?.roomName || roomDetails?.roomId || roomId;
 
   return (
     <div className="flex h-screen min-h-screen flex-col bg-[#0f172a] text-white">
@@ -391,13 +458,14 @@ const EditorRoom = () => {
           </section>
 
           <aside className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b] p-3">
-            <div className="rounded-xl border border-[#334155] bg-[#0f172a] p-3">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Room</p>
-              <p className="mt-1 text-sm font-semibold uppercase text-slate-100">{roomId}</p>
-              <p className="mt-2 text-xs text-slate-300">
-                Participants: {currentParticipants || roomUsers.length}/{maxParticipants || roomUsers.length}
-              </p>
-            </div>
+            <RoomHeader
+              roomName={roomDisplayName}
+              roomId={roomId}
+              language={language}
+              isConnected={isConnected}
+              maxParticipants={maxParticipants || roomUsers.length}
+              currentParticipants={currentParticipants || roomUsers.length}
+            />
 
             <div className="min-h-0 flex-1 overflow-hidden">
               <ChatBox roomId={roomId} user={user} />
