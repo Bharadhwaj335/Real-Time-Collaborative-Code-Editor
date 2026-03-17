@@ -1,11 +1,11 @@
 import express from "express";
-import { createRoom, getRoom,deleteRoom ,leaveRoom} from "../Controllers/room.controller.js";
+import { createRoom, getRoom, leaveRoom } from "../Controllers/room.controller.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
 
 const roomRoute = express.Router();
 
-roomRoute.post("/create", createRoom);
+roomRoute.post("/create", authMiddleware, createRoom);
 roomRoute.get("/:roomId", getRoom);
-roomRoute.delete("/delete/:roomId", deleteRoom);
-roomRoute.post("/leave/:roomId", leaveRoom);
+roomRoute.post("/leave/:roomId", authMiddleware, leaveRoom);
 
 export default roomRoute;

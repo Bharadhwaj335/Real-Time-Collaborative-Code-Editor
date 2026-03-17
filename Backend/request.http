@@ -1,75 +1,68 @@
-### register users
-POST http://localhost:7000/api/users/register
+### register user
+POST http://localhost:5000/api/auth/register
 Content-Type: application/json
 
 {
-    "userName":"lucky",
-    "email":"lucky@gmail.com",
-    "password":"lucky"
+  "name": "Lucky",
+  "email": "lucky@gmail.com",
+  "password": "lucky123"
 }
 
-####Login users
-POST http://localhost:7000/api/users/login
+### login user
+POST http://localhost:5000/api/auth/login
 Content-Type: application/json
 
 {
   "email": "lucky@gmail.com",
-  "password": "lucky"   
+  "password": "lucky123"
 }
 
-### get users 
-GET http://localhost:7000/api/users
+### get users
+GET http://localhost:5000/api/users
 
-###Create room 
-POST http://localhost:7000/api/rooms/create
+### create room (requires Bearer token)
+POST http://localhost:5000/api/rooms/create
+Content-Type: application/json
+Authorization: Bearer your_jwt_token_here
+
+{
+  "roomName": "DSA Practice Group",
+  "language": "javascript",
+  "visibility": "private"
+}
+
+### get room by id
+GET http://localhost:5000/api/rooms/ABC123
+
+### leave room (requires Bearer token)
+POST http://localhost:5000/api/rooms/leave/ABC123
+Content-Type: application/json
+Authorization: Bearer your_jwt_token_here
+
+{
+  "userId": "user-id"
+}
+
+### get room messages
+GET http://localhost:5000/api/messages/ABC123
+
+### send message (REST fallback)
+POST http://localhost:5000/api/messages/send
+Content-Type: application/json
+Authorization: Bearer your_jwt_token_here
+
+{
+  "roomId": "ABC123",
+  "senderId": "user-id",
+  "senderName": "Lucky",
+  "text": "Hi team"
+}
+
+### execute code
+POST http://localhost:5000/api/code/execute
 Content-Type: application/json
 
 {
-  "roomId": "130",
-  "language": "java",
-  "code": "",
-  "participants": ["Snigdha","lucky", "Rahul"],
-  "createdBy": "lucky"
+  "language": "python",
+  "code": "print('Hello World')"
 }
-
-###Get room by id 
-GET http://localhost:7000/api/rooms/130
-
-###leave room
-POST http://localhost:7000/api/rooms/leave/130
-Content-Type: application/json
-
-{
-  "userName":"Rahul"
-}
-
-###send message
-POST http://localhost:7000/api/messages/send
-Content-Type: application/json
-
-{
-    "roomId":"123",
-    "sender":"snigdha",
-    "message":"hi "
-}
-
-### get message by room id
-GET http://localhost:7000/api/messages/123
-
-### update code
-POST http://localhost:7000/api/code/update
-Content-Type: application/json
-
-{
-  "roomId":"130",
-  "code":"print('Hello World')"
-}
-
-### get code
-GET http://localhost:7000/api/code/130
-
-###Soft delete users
-DELETE http://localhost:7000/api/users/delete/69b7d6250b6ebb4dc328e43f
-
-###Soft delete Rooms
-DELETE http://localhost:7000/api/rooms/delete/130

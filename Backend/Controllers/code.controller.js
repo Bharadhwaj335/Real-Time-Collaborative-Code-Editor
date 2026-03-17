@@ -1,49 +1,28 @@
-import { RoomModel } from "../Models/room.js";
+import { executeCodeRemotely } from "../Services/codeExecution.service.js";
 
-// save or update code in a room
-export const updateCode = async (req, res) => {
+export const executeCode = async (req, res, next) => {
   try {
-    const { roomId, code } = req.body;
+    const code = req.body?.code;
+    const language = req.body?.language;
 
-    const room = await RoomModel.findOneAndUpdate(
-      { roomId },
-      { code },
-      { new: true }
-    );
-    if (!room) {
-      return res.status(404).json({
-        message: "Room not found"
+    if (!code || !language) {
+      return res.status(400).json({
+        success: false,
+        message: "code and language are required",
       });
     }
 
-    res.json({
+    const result = await executeCodeRemotely({
+      code,
+      language,
+      stdin: req.body?.stdin || "",
+    });
+
+    return res.status(200).json({
       success: true,
-      code: room.code
+      ...result,
     });
-
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// get code of a room
-export const getCode = async (req, res) => {
-  try {
-    const room = await RoomModel.findOne({
-      roomId: req.params.roomId
-    });
-
-    if (!room) {
-      return res.status(404).json({
-        message: "Room not found"
-      });
-    }
-
-    res.json({
-      code: room.code
-    });
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    return next(err);
   }
 };

@@ -1,24 +1,70 @@
-import { config } from "dotenv";
-config();
-import exp from "express";
-import cookieParser from "cookie-parser";
+import express from "express";
+import cors from "cors";
+import { createServer } from "node:http";
+
 import { connectDB } from "./config/db.js";
-import messageRoute from "./routes/message.routes.js";
-import userRoute from "./routes/user.routes.js";
-import roomRoute from "./routes/room.routes.js";
-import codeRoute from "./routes/code.routes.js";
+import { env, validateEnv } from "./config/env.js";
+import authRoutes from "./routes/auth.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import roomRoutes from "./routes/room.routes.js";
+import messageRoutes from "./routes/message.routes.js";
+import codeRoutes from "./routes/code.routes.js";
+import { errorMiddleware, notFoundMiddleware } from "./middlewares/error.middleware.js";
+import { initializeSocket } from "./socket/index.js";
+import { logger } from "./utils/logger.js";
+import { corsOriginHandler } from "./utils/cors.js";
 
-const app = exp();
+const app = express();
+const httpServer = createServer(app);
 
-app.use(exp.json());
-app.use(cookieParser());
-app.use("/api/users", userRoute);
-app.use("/api/rooms", roomRoute);
-app.use("/api/messages", messageRoute);
-app.use("/api/code",codeRoute)
+httpServer.on("error", (error) => {
+  if (error?.code === "EADDRINUSE") {
+    logger.error(
+      `Port ${env.port} is already in use. Stop the existing process or change PORT in Backend/.env.`
+    );
+    process.exit(1);
+    return;
+  }
 
-connectDB();
-
-app.listen(process.env.PORT || 7000, () => {
-  console.log(`Server running on port ${process.env.PORT || 7000}`);
+  logger.error("HTTP server error", error);
+  process.exit(1);
 });
+
+app.use(
+  cors({
+    origin: corsOriginHandler,
+    credentials: true,
+  })
+);
+app.use(express.json({ limit: "1mb" }));
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({ success: true, message: "Backend is running" });
+});
+
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/rooms", roomRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/code", codeRoutes);
+
+app.use(notFoundMiddleware);
+app.use(errorMiddleware);
+
+initializeSocket(httpServer);
+
+const startServer = async () => {
+  try {
+    validateEnv();
+    await connectDB();
+
+    httpServer.listen(env.port, () => {
+      logger.info(`Server running on port ${env.port}`);
+    });
+  } catch (error) {
+    logger.error("Failed to start server", error);
+    process.exit(1);
+  }
+};
+
+startServer();

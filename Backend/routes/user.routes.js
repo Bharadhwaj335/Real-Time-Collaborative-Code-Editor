@@ -1,11 +1,15 @@
 import express from "express";
-import { registerUser, getUsers ,loginUser,deleteUser } from "../Controllers/user.controller.js";
+import { getCurrentUser, getUsers } from "../Controllers/user.controller.js";
+import { loginUser, registerUser } from "../Controllers/auth.controller.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
 
 const userRoute = express.Router();
 
+// Legacy auth aliases for compatibility with older clients.
 userRoute.post("/register", registerUser);
-userRoute.get("/", getUsers);
 userRoute.post("/login", loginUser);
-userRoute.delete("/delete/:id", deleteUser);
+
+userRoute.get("/", getUsers);
+userRoute.get("/me", authMiddleware, getCurrentUser);
 
 export default userRoute;

@@ -1,30 +1,50 @@
 import { Schema, model } from "mongoose";
 
-// create schema for message
+const messageUserSchema = new Schema(
+  {
+    id: {
+      type: String,
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  },
+  { _id: false }
+);
+
 const messageSchema = new Schema(
   {
     roomId: {
       type: String,
       required: [true, "roomId is required"],
+      trim: true,
+      uppercase: true,
+      index: true,
     },
 
-    sender: {
-      type: String,
-      required: [true, "Sender is required"],
+    user: {
+      type: messageUserSchema,
+      required: [true, "Message user is required"],
     },
 
-    message: {
+    text: {
       type: String,
       required: [true, "Message is required"],
       trim: true,
     },
+
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
   },
   {
     timestamps: true,
-    strict: "throw",
     versionKey: false,
   }
 );
 
-// create message model
 export const MessageModel = model("Message", messageSchema);

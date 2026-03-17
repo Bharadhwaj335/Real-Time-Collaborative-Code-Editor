@@ -1,41 +1,64 @@
 import { Schema, model } from "mongoose";
 
-const roomSchema = new Schema({
-    roomId:{
-        type:String,
-        required:[true,"roomId is required"],
-        unique:true
+const roomUserSchema = new Schema(
+    {
+        id: {
+            type: String,
+            required: true,
+        },
+        name: {
+            type: String,
+            required: true,
+        },
+        status: {
+            type: String,
+            default: "online",
+        },
     },
-    language:{
-        type:String,
-        required:[true,"language is required"],
-        default:"javascript"
+    { _id: false }
+);
+
+const roomSchema = new Schema(
+    {
+        roomId: {
+            type: String,
+            required: [true, "roomId is required"],
+            unique: true,
+            uppercase: true,
+            trim: true,
+        },
+        roomName: {
+            type: String,
+            trim: true,
+            default: "",
+        },
+        language: {
+            type: String,
+            required: [true, "language is required"],
+            default: "javascript",
+        },
+        code: {
+            type: String,
+            default: "",
+        },
+        visibility: {
+            type: String,
+            enum: ["private", "public"],
+            default: "private",
+        },
+        users: {
+            type: [roomUserSchema],
+            default: [],
+        },
+        createdBy: {
+            type: String,
+            default: "",
+        },
     },
-    code:{
-        type:String,
-        default:""
-    },
-    participants:{
-        type:[String],
-        required:true,
-        validate:{
-            validator:(v)=> v.length>=2 && v.length<=6,
-            message:"Participants must be between 2 and 6"
-        }
-    },
-    createdBy:{
-        type:String,
-        required:true
-    },
-    isDeleted:{
-    type:Boolean,
-    default:false
-  }
-},
-{
-    timestamps:true,
-    strict:"throw",
-    versionKey:false
-});
+    {
+        timestamps: true,
+        versionKey: false,
+    }
+);
 
 export const RoomModel = model("Room", roomSchema);
