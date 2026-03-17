@@ -1,30 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
-import Button from "../components/Common/Button";
 import Navbar from "../components/Common/Navbar";
-import { createRoom, joinRoom } from "../services/api";
 import { disconnectSocket } from "../services/socket";
-import { DEFAULT_LANGUAGE, LANGUAGES } from "../utils/constants";
 import {
   clearAuthStorage,
-  extractRoomId,
   getRecentRooms,
-  getStoredUser,
-  saveRecentRoom
+  getStoredUser
 } from "../utils/helpers";
 
 const Home = () => {
   const navigate = useNavigate();
-  const [roomInput, setRoomInput] = useState("");
-  const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
-  const [loadingAction, setLoadingAction] = useState("");
-  const [recentRooms, setRecentRooms] = useState([]);
 
-  useEffect(() => {
-    setRecentRooms(getRecentRooms());
-  }, []);
-
+  const [recentRooms] = useState(() => getRecentRooms());
   const user = useMemo(() => getStoredUser(), []);
 
   const handleLogout = () => {
@@ -33,131 +20,73 @@ const Home = () => {
     navigate("/login", { replace: true });
   };
 
-  const handleCreateRoom = async () => {
-    setLoadingAction("create");
-
-    try {
-      const response = await createRoom({ language });
-      const roomId = response?.roomId || response?.data?.roomId;
-
-      if (!roomId) {
-        throw new Error("Room id missing in create room response");
-      }
-
-      saveRecentRoom({ roomId, language });
-      toast.success("Room created successfully.");
-      navigate(`/room/${roomId}`, { state: { language } });
-    } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        "Unable to create room right now.";
-      toast.error(message);
-    } finally {
-      setLoadingAction("");
-    }
-  };
-
-  const handleJoinRoom = async (value) => {
-    const resolvedRoom = extractRoomId(value || roomInput);
-
-    if (!resolvedRoom) {
-      toast.error("Enter a room id or invite link first.");
-      return;
-    }
-
-    setLoadingAction("join");
-
-    try {
-      const response = await joinRoom(resolvedRoom);
-
-      if (response?.isJoinable === false) {
-        toast.error(
-          response?.maxParticipants
-            ? `Room is full (${response.currentParticipants}/${response.maxParticipants}).`
-            : "Room is full."
-        );
-        return;
-      }
-
-      const roomLanguage = response?.language || language;
-      saveRecentRoom({ roomId: resolvedRoom, language: roomLanguage });
-      navigate(`/room/${resolvedRoom}`, { state: { language: roomLanguage } });
-    } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        "Room not found or unavailable.";
-      toast.error(message);
-    } finally {
-      setLoadingAction("");
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#111318] to-[#1e293b] text-white">
+      
       <Navbar userName={user?.name || "Student"} onLogout={handleLogout} />
 
-      <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[2fr_1fr]">
-        <section className="rounded-2xl border border-[#334155] bg-[#1e293b] p-6 shadow-[0_10px_40px_rgba(2,8,23,0.45)] sm:p-8">
-          <p className="text-xs uppercase tracking-[0.26em] text-blue-300">Quick Start</p>
-          <h1 className="mt-3 text-3xl font-bold">Collaborate in real time</h1>
-          <p className="mt-2 text-sm text-slate-300">
-            Choose a language, create a room instantly, or join a room using its ID.
+      <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 lg:grid-cols-[2fr_1fr]">
+        
+        {/* MAIN CARD */}
+        <section className="rounded-3xl border border-white/10 bg-[#1e1e1e]/80 backdrop-blur p-8 shadow-2xl">
+          
+          <p className="text-xs uppercase tracking-[0.3em] text-blue-400">
+            Dashboard
           </p>
 
-          <div className="mt-8 grid gap-5">
-            <label className="text-sm">
-              <span className="mb-2 block text-slate-300">Language</span>
-              <select
-                value={language}
-                onChange={(event) => setLanguage(event.target.value)}
-                className="w-full rounded-xl border border-[#334155] bg-[#0f172a] px-3 py-2.5 text-white outline-none transition focus:border-[#3b82f6]"
-              >
-                {LANGUAGES.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <h1 className="mt-3 text-4xl font-extrabold">
+            Welcome back,{" "}
+            <span className="text-blue-400">
+              {user?.name || "Student"}
+            </span>
+          </h1>
 
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-              <input
-                value={roomInput}
-                onChange={(event) => setRoomInput(event.target.value)}
-                placeholder="Paste room ID or invite link"
-                className="rounded-xl border border-[#334155] bg-[#0f172a] px-3 py-2.5 text-white outline-none transition focus:border-[#3b82f6]"
-              />
-              <Button
-                variant="secondary"
-                onClick={() => handleJoinRoom()}
-                loading={loadingAction === "join"}
-                className="rounded-xl border-[#334155] bg-[#0f172a] hover:border-[#3b82f6]/80"
-              >
-                Join Room
-              </Button>
-            </div>
+          <p className="mt-3 text-sm text-slate-400">
+            Start a new collaborative coding session or jump back into your recent rooms.
+          </p>
 
-            <Button
-              onClick={handleCreateRoom}
-              loading={loadingAction === "create"}
-              className="w-full rounded-xl py-3 transition hover:translate-y-[-1px]"
+          {/* ACTION BUTTONS */}
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+            
+            {/* CREATE */}
+            <button
+              onClick={() => navigate("/create-room")}
+              className="rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 p-[2px] transition hover:scale-[1.02]"
             >
-              Create Room
-            </Button>
+              <div className="rounded-2xl bg-[#1e1e1e] px-6 py-4 text-left">
+                <h2 className="text-lg font-semibold">🚀 Create Room</h2>
+                <p className="text-xs text-slate-400">
+                  Start a new coding session
+                </p>
+              </div>
+            </button>
+
+            {/* JOIN */}
+            <button
+              onClick={() => navigate("/join-room")}
+              className="rounded-2xl border border-white/10 bg-[#252526] px-6 py-4 text-left transition hover:border-blue-400/60 hover:bg-[#2a2b2e]"
+            >
+              <h2 className="text-lg font-semibold">🔗 Join Room</h2>
+              <p className="text-xs text-slate-400">
+                Enter a room ID to join
+              </p>
+            </button>
+
           </div>
         </section>
 
-        <aside className="rounded-2xl border border-[#334155] bg-[#1e293b] p-6 shadow-[0_10px_40px_rgba(2,8,23,0.45)]">
-          <h2 className="text-lg font-semibold">Recent rooms</h2>
-          <p className="mt-1 text-xs text-slate-300">Rejoin active sessions quickly.</p>
+        {/* RECENT ROOMS */}
+        <aside className="rounded-3xl border border-white/10 bg-[#1b1d24]/80 backdrop-blur p-6 shadow-xl">
+          
+          <h2 className="text-lg font-semibold">Recent Rooms</h2>
+          <p className="mt-1 text-xs text-slate-400">
+            Rejoin your previous sessions instantly
+          </p>
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-5 space-y-3">
+            
             {recentRooms.length === 0 && (
-              <p className="rounded-xl border border-[#334155] bg-[#0f172a] p-3 text-sm text-slate-300">
+              <p className="rounded-lg border border-white/10 bg-[#252526] p-3 text-sm text-slate-400">
                 No recent rooms yet.
               </p>
             )}
@@ -165,15 +94,36 @@ const Home = () => {
             {recentRooms.map((room) => (
               <button
                 key={room.roomId}
-                onClick={() => handleJoinRoom(room.roomId)}
-                className="w-full rounded-xl border border-[#334155] bg-[#0f172a] p-3 text-left transition hover:border-[#3b82f6] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+                onClick={() =>
+                  navigate(`/room/${room.roomId}`, {
+                    state: { language: room.language }
+                  })
+                }
+                className="group w-full rounded-xl border border-white/10 bg-[#252526] p-4 text-left transition hover:border-blue-400/60 hover:bg-[#2a2b2e]"
               >
-                <p className="font-semibold uppercase tracking-wide">{room.roomId}</p>
-                <p className="text-xs text-slate-400">{room.language}</p>
+                {/* ROOM NAME */}
+                <p className="font-semibold text-blue-400 group-hover:text-blue-300">
+                  {room.roomName || "Untitled Room"}
+                </p>
+
+                {/* ROOM ID */}
+                <p className="text-xs text-slate-400 mt-1">
+                  ID: {room.roomId}
+                </p>
+
+                {/* LANGUAGE */}
+                {room.language && (
+                  <p className="text-xs text-slate-500">
+                    {room.language}
+                  </p>
+                )}
               </button>
             ))}
+
           </div>
+
         </aside>
+
       </div>
     </div>
   );

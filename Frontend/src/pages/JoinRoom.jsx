@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import Button from "../components/Common/Button";
 import Navbar from "../components/Common/Navbar";
 import { joinRoom } from "../services/api";
 import { disconnectSocket } from "../services/socket";
@@ -28,7 +27,7 @@ const JoinRoom = () => {
     const roomId = extractRoomId(roomInput);
 
     if (!roomId) {
-      toast.error("Please enter a room ID or invite link.");
+      toast.error("Please enter a valid room ID or invite link.");
       return;
     }
 
@@ -36,73 +35,97 @@ const JoinRoom = () => {
 
     try {
       const response = await joinRoom(roomId);
-
-      if (response?.isJoinable === false) {
-        toast.error(
-          response?.maxParticipants
-            ? `Room is full (${response.currentParticipants}/${response.maxParticipants}).`
-            : "Room is full."
-        );
-        return;
-      }
-
       const language = response?.language || "javascript";
-      saveRecentRoom({ roomId, language });
+
+      saveRecentRoom({
+        roomId,
+        roomName: `Room-${roomId.slice(0, 5)}`,
+        language
+      });
+
+      toast.success("Joined successfully 🚀");
+
       navigate(`/room/${roomId}`, { state: { language } });
+
     } catch (error) {
-      const message =
+      toast.error(
         error?.response?.data?.message ||
-        error?.response?.data?.error ||
         error?.message ||
-        "Unable to join this room.";
-      toast.error(message);
+        "Unable to join this room."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#111318] to-[#020617] text-white">
+      
       <Navbar userName={user?.name || "Student"} onLogout={handleLogout} />
 
-      <div className="mx-auto w-full max-w-xl px-4 py-8">
-        <div className="rounded-2xl border border-[#334155] bg-[#1e293b] p-6 shadow-xl sm:p-8">
-        <h2 className="text-2xl font-semibold">Join a room</h2>
+      <div className="mx-auto flex w-full max-w-xl flex-col justify-center px-4 py-12">
 
-        <p className="mt-2 text-sm text-slate-400">
-          Paste a room id or full invite link to enter the collaborative editor.
-        </p>
+        {/* MAIN CARD */}
+        <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-lg p-8 shadow-2xl">
 
-        <div className="mt-6 flex rounded-lg bg-[#0f172a] p-1">
-          <button
-            onClick={() => navigate("/create-room")}
-            className="flex-1 rounded-md px-3 py-2 text-sm text-slate-400 transition hover:text-slate-200"
-          >
-            Create room
-          </button>
+          {/* HEADER */}
+          <h2 className="text-3xl font-bold text-center">
+            🔗 Join Room
+          </h2>
 
-          <button className="flex-1 rounded-md bg-[#334155] px-3 py-2 text-sm text-white">
-            Join room
-          </button>
-        </div>
+          <p className="mt-2 text-center text-sm text-slate-400">
+            Enter a room ID or paste an invite link
+          </p>
 
-        <label className="mt-6 block text-sm">
-          <span className="mb-2 block text-slate-300">Room ID or invite link</span>
-          <input
-            type="text"
-            value={roomInput}
-            onChange={(e) => setRoomInput(e.target.value)}
-            placeholder="e.g. ABC123 or http://localhost:5173/room/ABC123"
-            className="w-full rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-2.5 text-white outline-none transition focus:border-[#3b82f6]"
-          />
-        </label>
+          {/* TABS */}
+          <div className="mt-6 flex rounded-xl bg-[#15171d] p-1">
+            <button
+              onClick={() => navigate("/create-room")}
+              className="flex-1 rounded-lg py-2 text-sm text-slate-400 hover:text-white transition"
+            >
+              Create
+            </button>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <Button onClick={handleJoin} loading={loading}>
-            Join Room
-          </Button>
-          <Button variant="secondary" onClick={() => navigate("/home")}>Back</Button>
-        </div>
+            <button className="flex-1 rounded-lg bg-[#252526] py-2 text-sm text-white">
+              Join
+            </button>
+          </div>
+
+          {/* INPUT */}
+          <div className="mt-6">
+            <label className="text-sm text-slate-300">
+              Room ID or Invite Link
+            </label>
+
+            <input
+              type="text"
+              value={roomInput}
+              onChange={(e) => setRoomInput(e.target.value)}
+              placeholder="e.g. ABC123 or full link"
+              className="mt-2 w-full rounded-xl border border-white/10 bg-[#1e1e1e] px-4 py-3 text-white outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
+            />
+          </div>
+
+          {/* BUTTONS */}
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            
+            <button
+              onClick={handleJoin}
+              disabled={loading}
+              className="rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 py-3 font-semibold hover:scale-[1.02] transition disabled:opacity-60"
+            >
+              {loading ? "Joining..." : "Join Room"}
+            </button>
+
+            <button
+              onClick={() => navigate("/home")}
+              className="rounded-xl border border-white/10 bg-[#252526] py-3 hover:border-blue-400 transition"
+            >
+              Back
+            </button>
+
+          </div>
+
         </div>
       </div>
     </div>
