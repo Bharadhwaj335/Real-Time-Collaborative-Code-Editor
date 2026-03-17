@@ -36,6 +36,16 @@ const JoinRoom = () => {
 
     try {
       const response = await joinRoom(roomId);
+
+      if (response?.isJoinable === false) {
+        toast.error(
+          response?.maxParticipants
+            ? `Room is full (${response.currentParticipants}/${response.maxParticipants}).`
+            : "Room is full."
+        );
+        return;
+      }
+
       const language = response?.language || "javascript";
       saveRecentRoom({ roomId, language });
       navigate(`/room/${roomId}`, { state: { language } });

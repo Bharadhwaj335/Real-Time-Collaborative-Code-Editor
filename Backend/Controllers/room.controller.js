@@ -2,6 +2,44 @@ import { RoomModel } from "../Models/room.js";
 import { generateRoomId } from "../utils/generateRoomId.js";
 
 const normalizeRoomId = (value = "") => value.trim().toUpperCase();
+const DEFAULT_MAX_PARTICIPANTS = 8;
+const MIN_PARTICIPANTS = 2;
+const MAX_PARTICIPANTS = 50;
+
+const LANGUAGE_FILE_EXTENSION = {
+  javascript: "js",
+  typescript: "ts",
+  python: "py",
+  java: "java",
+  cpp: "cpp",
+  c: "c",
+  go: "go",
+  rust: "rs",
+};
+
+const clampParticipantLimit = (value) => {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_MAX_PARTICIPANTS;
+  }
+
+  return Math.min(MAX_PARTICIPANTS, Math.max(MIN_PARTICIPANTS, Math.round(parsed)));
+};
+
+const createInitialFile = (language = "javascript", code = "") => {
+  const normalizedLanguage = String(language || "javascript").toLowerCase();
+  const extension = LANGUAGE_FILE_EXTENSION[normalizedLanguage] || "txt";
+
+  return {
+    id: "main",
+    name: `main.${extension}`,
+    language: normalizedLanguage,
+    code,
+    lastEditedBy: "",
+    lastEditedAt: null,
+  };
+};
 
 const normalizeRoomUsers = (users = []) => {
   return users.map((user) => ({
@@ -31,6 +69,9 @@ export const createRoom = async (req, res, next) => {
     const roomName = (req.body?.roomName || "").trim();
     const language = (req.body?.language || "javascript").trim().toLowerCase();
     const visibility = req.body?.visibility === "public" ? "public" : "private";
+    const maxParticipants = clampParticipantLimit(req.body?.maxParticipants);
+    const initialCode = typeof req.body?.code === "string" ? req.body.code : "";
+    const initialFile = createInitialFile(language, initialCode);
 
     const roomId = req.body?.roomId
       ? normalizeRoomId(req.body.roomId)
@@ -43,8 +84,12 @@ export const createRoom = async (req, res, next) => {
       roomId,
       roomName,
       language,
+      code: initialFile.code,
       visibility,
+      maxParticipants,
       users: [{ id: String(creatorId), name: creatorName, status: "online" }],
+      files: [initialFile],
+      activeFileId: initialFile.id,
       createdBy: String(creatorId),
     });
 
@@ -71,9 +116,18 @@ export const getRoom = async (req, res, next) => {
       });
     }
 
+    const roomObject = room.toObject();
+    const normalizedUsers = normalizeRoomUsers(roomObject.users);
+    const currentParticipants = normalizedUsers.length;
+    const maxParticipants = Number(roomObject.maxParticipants) || DEFAULT_MAX_PARTICIPANTS;
+
     return res.status(200).json({
-      ...room.toObject(),
-      users: normalizeRoomUsers(room.users),
+      ...roomObject,
+      users: normalizedUsers,
+      currentParticipants,
+      maxParticipants,
+      isJoinable: currentParticipants < maxParticipants,
+      activeFileId: roomObject.activeFileId || roomObject.files?.[0]?.id || "",
     });
   } catch (error) {
     return next(error);

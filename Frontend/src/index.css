@@ -2,3 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+.cc-activity-line {
+	background: linear-gradient(90deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0));
+	border-left: 2px solid rgba(96, 165, 250, 0.9);
+}
+
+.cc-activity-line-latest {
+	background: linear-gradient(90deg, rgba(16, 185, 129, 0.22), rgba(16, 185, 129, 0));
+	border-left: 2px solid rgba(52, 211, 153, 0.95);
+}
+

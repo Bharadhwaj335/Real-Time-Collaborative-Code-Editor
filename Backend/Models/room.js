@@ -18,6 +18,38 @@ const roomUserSchema = new Schema(
     { _id: false }
 );
 
+const roomFileSchema = new Schema(
+    {
+        id: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        name: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        language: {
+            type: String,
+            default: "javascript",
+        },
+        code: {
+            type: String,
+            default: "",
+        },
+        lastEditedBy: {
+            type: String,
+            default: "",
+        },
+        lastEditedAt: {
+            type: Date,
+            default: null,
+        },
+    },
+    { _id: false }
+);
+
 const roomSchema = new Schema(
     {
         roomId: {
@@ -46,9 +78,23 @@ const roomSchema = new Schema(
             enum: ["private", "public"],
             default: "private",
         },
+        maxParticipants: {
+            type: Number,
+            min: 2,
+            max: 50,
+            default: 8,
+        },
         users: {
             type: [roomUserSchema],
             default: [],
+        },
+        files: {
+            type: [roomFileSchema],
+            default: [],
+        },
+        activeFileId: {
+            type: String,
+            default: "",
         },
         createdBy: {
             type: String,

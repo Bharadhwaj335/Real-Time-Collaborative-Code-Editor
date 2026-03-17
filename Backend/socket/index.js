@@ -39,7 +39,7 @@ export const initializeSocket = (httpServer) => {
     logger.info(`Socket connected: ${socket.id}`);
 
     registerRoomSocket(io, socket);
-    registerCodeSyncSocket(socket);
+    registerCodeSyncSocket(io, socket);
     registerCursorSocket(socket);
     registerChatSocket(io, socket);
 

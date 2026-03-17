@@ -12,6 +12,7 @@ export const registerCursorSocket = (socket) => {
       roomId,
       userId: payload.userId,
       userName: payload.userName,
+      fileId: payload.fileId,
       position: payload.position,
       timestamp: new Date().toISOString(),
     });

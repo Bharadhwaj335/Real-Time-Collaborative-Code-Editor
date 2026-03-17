@@ -1,10 +1,13 @@
 import Avatar from "../Common/Avatar";
 
-const UserList = ({ users = [], currentUserId }) => {
+const UserList = ({ users = [], currentUserId, maxParticipants }) => {
 
   return (
     <div className="rounded-xl border border-white/10 bg-[#252526] p-4">
       <h3 className="text-sm font-semibold text-white">Active users ({users.length})</h3>
+      <p className="mt-1 text-xs text-slate-400">
+        Capacity: {users.length}/{maxParticipants || users.length}
+      </p>
 
       {users.length === 0 ? (
         <p className="mt-3 text-sm text-slate-400">

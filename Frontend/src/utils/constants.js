@@ -24,9 +24,14 @@ export const DEFAULT_LANGUAGE = LANGUAGES[0].value;
 
 export const SOCKET_EVENTS = {
 	JOIN_ROOM: "JOIN_ROOM",
+	ROOM_STATE: "ROOM_STATE",
+	ROOM_JOIN_ERROR: "ROOM_JOIN_ERROR",
 	LEAVE_ROOM: "LEAVE_ROOM",
 	CODE_CHANGE: "CODE_CHANGE",
 	CODE_UPDATE: "CODE_UPDATE",
+	FILE_CREATE: "FILE_CREATE",
+	FILE_CREATE_ERROR: "FILE_CREATE_ERROR",
+	FILE_LIST_UPDATE: "FILE_LIST_UPDATE",
 	CURSOR_MOVE: "CURSOR_MOVE",
 	CURSOR_UPDATE: "CURSOR_UPDATE",
 	SEND_MESSAGE: "SEND_MESSAGE",
@@ -39,3 +44,6 @@ export const SOCKET_EVENTS = {
 export const DEFAULT_EDITOR_CODE = `// Welcome to the collaborative editor\n// Start coding with your teammates in real time.\n\nfunction greet(name) {\n  return \`Hello, \${name}!\`;\n}\n\nconsole.log(greet("Team"));\n`;
 
 export const MAX_RECENT_ROOMS = 6;
+export const DEFAULT_MAX_PARTICIPANTS = 8;
+export const MIN_ROOM_PARTICIPANTS = 2;
+export const MAX_ROOM_PARTICIPANTS = 50;

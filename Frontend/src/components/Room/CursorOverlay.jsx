@@ -1,5 +1,9 @@
-const CursorOverlay = ({ remoteCursors }) => {
-	const cursorItems = Object.values(remoteCursors || {});
+const CursorOverlay = ({ remoteCursors, activeFileId }) => {
+	const cursorItems = Object.values(remoteCursors || {}).filter((cursor) => {
+		if (!activeFileId) return true;
+		if (!cursor.fileId) return true;
+		return cursor.fileId === activeFileId;
+	});
 
 	if (cursorItems.length === 0) return null;
 

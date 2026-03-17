@@ -3,8 +3,34 @@ import { logger } from "../utils/logger.js";
 
 const roomUsersStore = new Map();
 const socketMembershipStore = new Map();
+const DEFAULT_MAX_PARTICIPANTS = 8;
 
 const normalizeRoomId = (roomId = "") => roomId.trim().toUpperCase();
+
+const LANGUAGE_FILE_EXTENSION = {
+  javascript: "js",
+  typescript: "ts",
+  python: "py",
+  java: "java",
+  cpp: "cpp",
+  c: "c",
+  go: "go",
+  rust: "rs",
+};
+
+const createFallbackFile = (language = "javascript", code = "") => {
+  const normalizedLanguage = String(language || "javascript").toLowerCase();
+  const extension = LANGUAGE_FILE_EXTENSION[normalizedLanguage] || "txt";
+
+  return {
+    id: "main",
+    name: `main.${extension}`,
+    language: normalizedLanguage,
+    code,
+    lastEditedBy: "",
+    lastEditedAt: null,
+  };
+};
 
 const toClientUsers = (usersMap) => {
   return Array.from(usersMap.values()).map((user) => ({
@@ -12,6 +38,33 @@ const toClientUsers = (usersMap) => {
     name: user.name,
     status: user.status || "online",
   }));
+};
+
+const ensureRoomFiles = (room) => {
+  const existingFiles = Array.isArray(room.files) ? room.files : [];
+
+  if (existingFiles.length > 0) {
+    return {
+      files: existingFiles,
+      activeFileId: room.activeFileId || existingFiles[0].id,
+      changed: false,
+    };
+  }
+
+  const fallbackFile = createFallbackFile(room.language, room.code || "");
+  room.files = [fallbackFile];
+  room.activeFileId = fallbackFile.id;
+
+  return {
+    files: room.files,
+    activeFileId: room.activeFileId,
+    changed: true,
+  };
+};
+
+const getRoomParticipantLimit = async (roomId) => {
+  const room = await RoomModel.findOne({ roomId }).select("maxParticipants");
+  return Number(room?.maxParticipants) || DEFAULT_MAX_PARTICIPANTS;
 };
 
 const persistRoomUsers = async (roomId, users) => {
@@ -26,7 +79,7 @@ const persistRoomUsers = async (roomId, users) => {
         language: "javascript",
       },
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: "after" }
   );
 };
 
@@ -61,8 +114,14 @@ export const registerRoomSocket = (io, socket) => {
     socket.leave(roomId);
 
     const users = toClientUsers(usersMap);
+    const maxParticipants = await getRoomParticipantLimit(roomId);
 
-    io.to(roomId).emit("ROOM_USERS", { roomId, users });
+    io.to(roomId).emit("ROOM_USERS", {
+      roomId,
+      users,
+      maxParticipants,
+      currentParticipants: users.length,
+    });
     io.to(roomId).emit("USER_LEFT", { roomId, userId, users });
 
     if (users.length === 0) {
@@ -86,11 +145,46 @@ export const registerRoomSocket = (io, socket) => {
         return;
       }
 
-      await leaveCurrentRoom();
+      const room = await RoomModel.findOne({ roomId });
+
+      if (!room) {
+        socket.emit("ROOM_JOIN_ERROR", {
+          roomId,
+          message: "Room not found.",
+        });
+        return;
+      }
+
+      const { files, activeFileId, changed } = ensureRoomFiles(room);
+      const maxParticipants = Number(room.maxParticipants) || DEFAULT_MAX_PARTICIPANTS;
+
+      if (changed) {
+        await room.save();
+      }
+
+      const usersMap = getOrCreateRoomUsers(roomId);
+      const alreadyInRoom = usersMap.has(userId);
+
+      if (!alreadyInRoom && usersMap.size >= maxParticipants) {
+        socket.emit("ROOM_JOIN_ERROR", {
+          roomId,
+          message: `Room is full. Max ${maxParticipants} participants allowed.`,
+          maxParticipants,
+          currentParticipants: usersMap.size,
+        });
+        return;
+      }
+
+      const membership = socketMembershipStore.get(socket.id);
+      const isSameRoomMembership =
+        membership?.roomId === roomId && membership?.userId === userId;
+
+      if (!isSameRoomMembership) {
+        await leaveCurrentRoom();
+      }
 
       socket.join(roomId);
 
-      const usersMap = getOrCreateRoomUsers(roomId);
       usersMap.set(userId, {
         id: userId,
         name: userName,
@@ -104,11 +198,29 @@ export const registerRoomSocket = (io, socket) => {
 
       const users = toClientUsers(usersMap);
 
-      io.to(roomId).emit("ROOM_USERS", { roomId, users });
+      io.to(roomId).emit("ROOM_USERS", {
+        roomId,
+        users,
+        maxParticipants,
+        currentParticipants: users.length,
+      });
       socket.to(roomId).emit("USER_JOINED", {
         roomId,
         user: { id: userId, name: userName, status: "online" },
         users,
+        maxParticipants,
+        currentParticipants: users.length,
+      });
+
+      socket.emit("ROOM_STATE", {
+        roomId,
+        roomName: room.roomName || "",
+        visibility: room.visibility || "private",
+        language: room.language || "javascript",
+        files,
+        activeFileId,
+        maxParticipants,
+        currentParticipants: users.length,
       });
 
       await persistRoomUsers(roomId, users);

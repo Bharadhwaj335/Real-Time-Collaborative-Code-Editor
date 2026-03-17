@@ -23,6 +23,13 @@ export const executeCode = async (req, res, next) => {
       ...result,
     });
   } catch (err) {
+    if (err?.statusCode === 503) {
+      return res.status(503).json({
+        success: false,
+        message: err.message || "Code execution service is temporarily unavailable. Please try again.",
+      });
+    }
+
     return next(err);
   }
 };
