@@ -1,0 +1,75 @@
+### register users
+POST http://localhost:7000/api/users/register
+Content-Type: application/json
+
+{
+    "userName":"lucky",
+    "email":"lucky@gmail.com",
+    "password":"lucky"
+}
+
+####Login users
+POST http://localhost:7000/api/users/login
+Content-Type: application/json
+
+{
+  "email": "lucky@gmail.com",
+  "password": "lucky"   
+}
+
+### get users 
+GET http://localhost:7000/api/users
+
+###Create room 
+POST http://localhost:7000/api/rooms/create
+Content-Type: application/json
+
+{
+  "roomId": "130",
+  "language": "java",
+  "code": "",
+  "participants": ["Snigdha","lucky", "Rahul"],
+  "createdBy": "lucky"
+}
+
+###Get room by id 
+GET http://localhost:7000/api/rooms/130
+
+###leave room
+POST http://localhost:7000/api/rooms/leave/130
+Content-Type: application/json
+
+{
+  "userName":"Rahul"
+}
+
+###send message
+POST http://localhost:7000/api/messages/send
+Content-Type: application/json
+
+{
+    "roomId":"123",
+    "sender":"snigdha",
+    "message":"hi "
+}
+
+### get message by room id
+GET http://localhost:7000/api/messages/123
+
+### update code
+POST http://localhost:7000/api/code/update
+Content-Type: application/json
+
+{
+  "roomId":"130",
+  "code":"print('Hello World')"
+}
+
+### get code
+GET http://localhost:7000/api/code/130
+
+###Soft delete users
+DELETE http://localhost:7000/api/users/delete/69b7d6250b6ebb4dc328e43f
+
+###Soft delete Rooms
+DELETE http://localhost:7000/api/rooms/delete/130
