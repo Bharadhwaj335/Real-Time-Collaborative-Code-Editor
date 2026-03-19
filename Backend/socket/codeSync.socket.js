@@ -82,9 +82,11 @@ const sanitizeFileName = (inputName = "", language = "javascript") => {
   return `${baseName}.${extension}`;
 };
 
-const ensureUniqueFileName = (files, preferredName) => {
+const ensureUniqueFileName = (files, preferredName, ignoreFileId = "") => {
   const existingNames = new Set(
-    (files || []).map((file) => String(file.name || "").toLowerCase())
+    (files || [])
+      .filter((file) => !ignoreFileId || file.id !== ignoreFileId)
+      .map((file) => String(file.name || "").toLowerCase())
   );
 
   if (!existingNames.has(preferredName.toLowerCase())) {
@@ -107,6 +109,23 @@ const ensureUniqueFileName = (files, preferredName) => {
   return `${base}-${Date.now()}${extension}`;
 };
 
+const findFileByPayload = (files = [], payload = {}) => {
+  return files.find((file) => {
+    if (payload.fileId && file.id === payload.fileId) {
+      return true;
+    }
+
+    if (payload.fileName) {
+      return (
+        String(file.name || "").toLowerCase() ===
+        String(payload.fileName || "").toLowerCase()
+      );
+    }
+
+    return false;
+  });
+};
+
 const toClientFiles = (files = []) => {
   return files.map((file) => ({
     id: file.id,
@@ -116,6 +135,15 @@ const toClientFiles = (files = []) => {
     lastEditedBy: file.lastEditedBy || "",
     lastEditedAt: file.lastEditedAt || null,
   }));
+};
+
+const emitFileListUpdate = (io, roomId, room, extra = {}) => {
+  io.to(roomId).emit("FILE_LIST_UPDATE", {
+    roomId,
+    files: toClientFiles(room.files),
+    activeFileId: room.activeFileId,
+    ...extra,
+  });
 };
 
 export const registerCodeSyncSocket = (io, socket) => {
@@ -135,12 +163,12 @@ export const registerCodeSyncSocket = (io, socket) => {
 
       const { files, activeFileId } = ensureRoomFiles(room);
 
-      let targetFile = files.find((file) => file.id === payload.fileId);
+      let targetFile = findFileByPayload(files, payload);
       let createdNewFileFromCodeChange = false;
 
       if (!targetFile) {
         const fallbackLanguage = normalizeLanguage(payload.language, room.language || "javascript");
-        const desiredName = sanitizeFileName(payload.fileName, fallbackLanguage);
+        const desiredName = sanitizeFileName(payload.fileName || "untitled", fallbackLanguage);
         const uniqueName = ensureUniqueFileName(files, desiredName);
         const inferredLanguage = getLanguageFromFileName(uniqueName, fallbackLanguage);
 
@@ -178,11 +206,7 @@ export const registerCodeSyncSocket = (io, socket) => {
       await room.save();
 
       if (createdNewFileFromCodeChange) {
-        io.to(roomId).emit("FILE_LIST_UPDATE", {
-          roomId,
-          files: toClientFiles(room.files),
-          activeFileId: room.activeFileId,
-        });
+        emitFileListUpdate(io, roomId, room);
       }
 
       const normalizedChanges = normalizeChanges(payload.changes);
@@ -253,10 +277,7 @@ export const registerCodeSyncSocket = (io, socket) => {
 
       await room.save();
 
-      io.to(roomId).emit("FILE_LIST_UPDATE", {
-        roomId,
-        files: toClientFiles(room.files),
-        activeFileId: room.activeFileId,
+      emitFileListUpdate(io, roomId, room, {
         language: newFile.language,
         createdBy: {
           id: payload.userId,
@@ -304,17 +325,7 @@ export const registerCodeSyncSocket = (io, socket) => {
       }
 
       const { files, activeFileId } = ensureRoomFiles(room);
-      const targetFile = files.find((file) => {
-        if (payload.fileId && file.id === payload.fileId) {
-          return true;
-        }
-
-        if (payload.fileName) {
-          return String(file.name || "").toLowerCase() === String(payload.fileName || "").toLowerCase();
-        }
-
-        return false;
-      });
+      const targetFile = findFileByPayload(files, payload);
 
       if (!targetFile) {
         return;
@@ -340,6 +351,154 @@ export const registerCodeSyncSocket = (io, socket) => {
       });
     } catch (error) {
       logger.error("FILE_CHANGE failed", error);
+    }
+  });
+
+  socket.on("FILE_RENAME", async (payload = {}) => {
+    try {
+      const roomId = normalizeRoomId(payload.roomId || "");
+
+      if (!roomId) {
+        return;
+      }
+
+      const room = await RoomModel.findOne({ roomId });
+
+      if (!room) {
+        return;
+      }
+
+      const { files, activeFileId } = ensureRoomFiles(room);
+      const targetFile = findFileByPayload(files, {
+        fileId: payload.fileId,
+        fileName: payload.oldFileName || payload.fileName || payload.oldName,
+      });
+
+      if (!targetFile) {
+        return;
+      }
+
+      const requestedName = String(
+        payload.newFileName || payload.newName || payload.fileName || ""
+      ).trim();
+
+      if (!requestedName) {
+        return;
+      }
+
+      const fallbackLanguage = normalizeLanguage(
+        payload.language,
+        targetFile.language || room.language || "javascript"
+      );
+      const sanitizedName = sanitizeFileName(requestedName, fallbackLanguage);
+      const uniqueName = ensureUniqueFileName(files, sanitizedName, targetFile.id);
+
+      targetFile.name = uniqueName;
+      targetFile.language = getLanguageFromFileName(uniqueName, fallbackLanguage);
+      targetFile.lastEditedBy = payload.userName || payload.userId || "Collaborator";
+      targetFile.lastEditedAt = new Date();
+
+      const resolvedActiveFileId = room.activeFileId || activeFileId || targetFile.id;
+      const activeFile = files.find((file) => file.id === resolvedActiveFileId) || targetFile;
+
+      room.activeFileId = activeFile.id;
+      room.language = activeFile.language || room.language;
+      room.code = activeFile.code || "";
+
+      await room.save();
+
+      emitFileListUpdate(io, roomId, room, {
+        language: room.language,
+      });
+
+      io.to(roomId).emit("FILE_RENAMED", {
+        roomId,
+        fileId: targetFile.id,
+        fileName: targetFile.name,
+        language: targetFile.language,
+      });
+
+      if (activeFile.id === targetFile.id) {
+        io.to(roomId).emit("FILE_CHANGE", {
+          roomId,
+          fileId: activeFile.id,
+          fileName: activeFile.name,
+          language: activeFile.language,
+        });
+      }
+    } catch (error) {
+      logger.error("FILE_RENAME failed", error);
+    }
+  });
+
+  socket.on("FILE_DELETE", async (payload = {}) => {
+    try {
+      const roomId = normalizeRoomId(payload.roomId || "");
+
+      if (!roomId) {
+        return;
+      }
+
+      const room = await RoomModel.findOne({ roomId });
+
+      if (!room) {
+        return;
+      }
+
+      const { files, activeFileId } = ensureRoomFiles(room);
+
+      if (files.length <= 1) {
+        socket.emit("FILE_DELETE_ERROR", {
+          roomId,
+          message: "At least one file must remain in the room.",
+        });
+        return;
+      }
+
+      const targetFile = findFileByPayload(files, payload);
+
+      if (!targetFile) {
+        return;
+      }
+
+      room.files = files.filter((file) => file.id !== targetFile.id);
+
+      const currentlyActiveId = room.activeFileId || activeFileId;
+      const shouldSwitchActive = !currentlyActiveId || currentlyActiveId === targetFile.id;
+      const nextActive = shouldSwitchActive
+        ? room.files[0]
+        : room.files.find((file) => file.id === currentlyActiveId) || room.files[0];
+
+      room.activeFileId = nextActive?.id || "";
+      room.language = nextActive?.language || room.language;
+      room.code = nextActive?.code || "";
+
+      await room.save();
+
+      emitFileListUpdate(io, roomId, room, {
+        language: room.language,
+      });
+
+      io.to(roomId).emit("FILE_DELETED", {
+        roomId,
+        fileId: targetFile.id,
+        fileName: targetFile.name,
+      });
+
+      if (nextActive) {
+        io.to(roomId).emit("FILE_CHANGE", {
+          roomId,
+          fileId: nextActive.id,
+          fileName: nextActive.name,
+          language: nextActive.language,
+        });
+      }
+    } catch (error) {
+      logger.error("FILE_DELETE failed", error);
+      socket.emit("FILE_DELETE_ERROR", {
+        roomId: normalizeRoomId(payload.roomId || ""),
+        message: "Unable to delete file right now.",
+      });
     }
   });
 };

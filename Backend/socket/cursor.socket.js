@@ -13,6 +13,7 @@ export const registerCursorSocket = (socket) => {
       userId: payload.userId,
       userName: payload.userName,
       fileId: payload.fileId,
+      fileName: payload.fileName,
       position: payload.position,
       timestamp: new Date().toISOString(),
     });

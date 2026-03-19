@@ -19,7 +19,28 @@ const formatLogTime = (value) => {
   });
 };
 
-const OutputConsole = ({ stdout = "", stderr = "", runtimeError = "", logs = [], isRunning = false }) => {
+const STATUS_STYLE = {
+  idle: "text-slate-400",
+  running: "text-amber-300",
+  success: "text-emerald-300",
+  error: "text-rose-300"
+};
+
+const STATUS_LABEL = {
+  idle: "Idle",
+  running: "Running",
+  success: "Success",
+  error: "Error"
+};
+
+const OutputConsole = ({
+  stdout = "",
+  stderr = "",
+  runtimeError = "",
+  logs = [],
+  executionStatus = "idle",
+  onClear
+}) => {
   const [activeTab, setActiveTab] = useState(tabKeys.output);
   const containerRef = useRef(null);
 
@@ -78,7 +99,18 @@ const OutputConsole = ({ stdout = "", stderr = "", runtimeError = "", logs = [],
           </button>
         </div>
 
-        <p className="text-xs text-slate-400">{isRunning ? "Running..." : "Idle"}</p>
+        <div className="flex items-center gap-3">
+          <p className={`text-xs font-medium ${STATUS_STYLE[executionStatus] || STATUS_STYLE.idle}`}>
+            {STATUS_LABEL[executionStatus] || STATUS_LABEL.idle}
+          </p>
+
+          <button
+            onClick={() => onClear?.()}
+            className="rounded-md border border-[#334155] px-2.5 py-1 text-xs text-slate-300 transition hover:border-[#3b82f6]/70 hover:text-blue-200"
+          >
+            Clear
+          </button>
+        </div>
       </div>
 
       <div

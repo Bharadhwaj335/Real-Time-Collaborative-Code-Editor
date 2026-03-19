@@ -41,13 +41,15 @@ const CodeEditor = ({
   code,
   onCodeChange,
   onCursorMove,
+  remoteCursors = {},
   activityItems = [],
   activeFileName,
   readOnly = false
 }) => {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
-  const decorationsRef = useRef([]);
+  const activityDecorationsRef = useRef([]);
+  const cursorDecorationsRef = useRef([]);
   const preventEmitRef = useRef(false);
 
   const handleMount = (editor, monaco) => {
@@ -140,8 +142,51 @@ const CodeEditor = ({
       });
     });
 
-    decorationsRef.current = editor.deltaDecorations(decorationsRef.current, decorations);
+    activityDecorationsRef.current = editor.deltaDecorations(
+      activityDecorationsRef.current,
+      decorations
+    );
   }, [activeFileName, activityItems]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+
+    if (!editor || !monaco) return;
+
+    const model = editor.getModel();
+    if (!model) return;
+
+    const cursorItems = Object.values(remoteCursors || {}).filter((cursor) => {
+      if (!activeFileName) return true;
+      if (!cursor?.fileName) return true;
+      return cursor.fileName === activeFileName;
+    });
+
+    const decorations = cursorItems.map((cursor, index) => {
+      const lineNumber = clampLine(cursor?.position?.lineNumber, model);
+      const maxColumn = Math.max(1, model.getLineMaxColumn(lineNumber));
+      const column = Math.min(maxColumn, Math.max(1, Number(cursor?.position?.column) || 1));
+      const endColumn = Math.max(column, Math.min(maxColumn, column + 1));
+      const colorClass = `cc-remote-cursor-${index % 6}`;
+
+      return {
+        range: new monaco.Range(lineNumber, column, lineNumber, endColumn),
+        options: {
+          className: `cc-remote-cursor ${colorClass}`,
+          after: {
+            content: ` ${cursor?.userName || "Collaborator"}`,
+            inlineClassName: `cc-remote-cursor-label ${colorClass}`
+          }
+        }
+      };
+    });
+
+    cursorDecorationsRef.current = editor.deltaDecorations(
+      cursorDecorationsRef.current,
+      decorations
+    );
+  }, [activeFileName, remoteCursors]);
 
   return (
     <Editor

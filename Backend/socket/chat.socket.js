@@ -30,4 +30,21 @@ export const registerChatSocket = (io, socket) => {
       logger.error("SEND_MESSAGE failed", error);
     }
   });
+
+  socket.on("USER_TYPING", (payload = {}) => {
+    const roomId = normalizeRoomId(payload.roomId || "");
+    const userId = payload.userId || socket.user?.id || socket.id;
+
+    if (!roomId || !userId) {
+      return;
+    }
+
+    socket.to(roomId).emit("USER_TYPING", {
+      roomId,
+      userId,
+      userName: payload.userName || socket.user?.name || "Collaborator",
+      isTyping: Boolean(payload.isTyping),
+      timestamp: new Date().toISOString(),
+    });
+  });
 };

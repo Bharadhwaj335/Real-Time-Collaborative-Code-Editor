@@ -24,3 +24,50 @@ body {
 	border-left: 2px solid rgba(52, 211, 153, 0.95);
 }
 
+.cc-remote-cursor {
+	border-left: 2px solid currentColor;
+	background: rgba(148, 163, 184, 0.18);
+}
+
+.cc-remote-cursor-label {
+	margin-left: 4px;
+	padding: 1px 6px;
+	border-radius: 9999px;
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	background: rgba(15, 23, 42, 0.9);
+	border: 1px solid currentColor;
+}
+
+.cc-remote-cursor-0 {
+	color: #f97316;
+	background: rgba(249, 115, 22, 0.2);
+}
+
+.cc-remote-cursor-1 {
+	color: #38bdf8;
+	background: rgba(56, 189, 248, 0.2);
+}
+
+.cc-remote-cursor-2 {
+	color: #34d399;
+	background: rgba(52, 211, 153, 0.2);
+}
+
+.cc-remote-cursor-3 {
+	color: #facc15;
+	background: rgba(250, 204, 21, 0.2);
+}
+
+.cc-remote-cursor-4 {
+	color: #f472b6;
+	background: rgba(244, 114, 182, 0.2);
+}
+
+.cc-remote-cursor-5 {
+	color: #a78bfa;
+	background: rgba(167, 139, 250, 0.2);
+}
+

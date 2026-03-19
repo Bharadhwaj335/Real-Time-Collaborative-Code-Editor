@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import MessageItem from "./MessageItem";
 import useSocket from "../../hooks/useSocket";
@@ -21,8 +21,10 @@ const ChatBox = ({ roomId, user }) => {
   const { socket } = useSocket();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [typingUsers, setTypingUsers] = useState({});
   const [loading, setLoading] = useState(true);
   const messageContainerRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
   const currentUserId = useMemo(() => user?.id, [user?.id]);
 
@@ -66,6 +68,18 @@ const ChatBox = ({ roomId, user }) => {
 
       const incoming = normalizeMessage(payload);
 
+      if (incoming?.senderId) {
+        setTypingUsers((prev) => {
+          if (!prev[incoming.senderId]) {
+            return prev;
+          }
+
+          const next = { ...prev };
+          delete next[incoming.senderId];
+          return next;
+        });
+      }
+
       setMessages((prev) => {
         const existingIndex = prev.findIndex(
           (item) =>
@@ -86,12 +100,36 @@ const ChatBox = ({ roomId, user }) => {
       });
     };
 
+    const handleTypingUpdate = (payload) => {
+      if (!payload?.userId || payload.userId === currentUserId) return;
+      if (payload?.roomId && payload.roomId !== roomId) return;
+
+      setTypingUsers((prev) => {
+        if (!payload.isTyping) {
+          if (!prev[payload.userId]) {
+            return prev;
+          }
+
+          const next = { ...prev };
+          delete next[payload.userId];
+          return next;
+        }
+
+        return {
+          ...prev,
+          [payload.userId]: payload.userName || "Collaborator"
+        };
+      });
+    };
+
     socket.on(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
+    socket.on(SOCKET_EVENTS.USER_TYPING, handleTypingUpdate);
 
     return () => {
       socket.off(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
+      socket.off(SOCKET_EVENTS.USER_TYPING, handleTypingUpdate);
     };
-  }, [roomId, socket]);
+  }, [currentUserId, roomId, socket]);
 
   useEffect(() => {
     if (!messageContainerRef.current) return;
@@ -102,9 +140,37 @@ const ChatBox = ({ roomId, user }) => {
     });
   }, [messages]);
 
+  const emitTypingState = useCallback((isTyping) => {
+    if (!roomId || !currentUserId) return;
+
+    socket.emit(SOCKET_EVENTS.USER_TYPING, {
+      roomId,
+      userId: currentUserId,
+      userName: user?.name,
+      isTyping
+    });
+  }, [currentUserId, roomId, socket, user?.name]);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        window.clearTimeout(typingTimeoutRef.current);
+      }
+
+      emitTypingState(false);
+    };
+  }, [emitTypingState]);
+
   const handleSend = () => {
     const cleanMessage = message.trim();
     if (!cleanMessage) return;
+
+    emitTypingState(false);
+
+    if (typingTimeoutRef.current) {
+      window.clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
 
     const payload = {
       roomId,
@@ -146,10 +212,29 @@ const ChatBox = ({ roomId, user }) => {
       </div>
 
       <div className="border-t border-[#334155] p-3">
+        {Object.keys(typingUsers).length > 0 && (
+          <p className="mb-2 rounded-md border border-[#334155] bg-[#111827] px-2 py-1 text-xs text-amber-200">
+            {Object.values(typingUsers).slice(0, 2).join(", ")}
+            {Object.keys(typingUsers).length > 2 ? " and others" : ""}{" "}
+            {Object.keys(typingUsers).length > 1 ? "are" : "is"} typing...
+          </p>
+        )}
+
         <div className="flex items-end gap-2">
           <textarea
             value={message}
-            onChange={(event) => setMessage(event.target.value)}
+            onChange={(event) => {
+              setMessage(event.target.value);
+              emitTypingState(true);
+
+              if (typingTimeoutRef.current) {
+                window.clearTimeout(typingTimeoutRef.current);
+              }
+
+              typingTimeoutRef.current = window.setTimeout(() => {
+                emitTypingState(false);
+              }, 1000);
+            }}
             placeholder="Type a message..."
             rows={2}
             className="min-h-[54px] flex-1 resize-none rounded-lg border border-[#334155] bg-[#1e293b] px-3 py-2 text-sm text-white outline-none transition focus:border-[#3b82f6]"

@@ -77,4 +77,14 @@ export const executeCode = async (payload) => {
   }
 };
 
+export const getRoomCodeSnapshot = async (roomId) => {
+  const response = await api.get(`/code/${roomId}`);
+  return response.data;
+};
+
+export const saveRoomCodeSnapshot = async (payload) => {
+  const response = await api.post("/code/save", payload);
+  return response.data;
+};
+
 export default api;
