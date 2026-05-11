@@ -1,11 +1,28 @@
 import axios from "axios";
 import { API_BASE_URL } from "../utils/constants";
-import { getStoredToken } from "../utils/helpers";
+import { getStoredToken, clearAuthStorage } from "../utils/helpers";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000
+  timeout: 15000,
+  withCredentials: true
 });
+
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  
+  isRefreshing = false;
+  failedQueue = [];
+};
 
 api.interceptors.request.use((config) => {
   const token = getStoredToken();
@@ -16,6 +33,49 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      return api.post("/auth/refresh")
+        .then((response) => {
+          const { token } = response.data;
+          
+          if (token) {
+            processQueue(null, token);
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          } else {
+            clearAuthStorage();
+            processQueue(new Error("Token refresh failed"), null);
+            return Promise.reject(error);
+          }
+        })
+        .catch((err) => {
+          clearAuthStorage();
+          processQueue(err, null);
+          return Promise.reject(err);
+        });
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export const loginUser = async (payload) => {
   const response = await api.post("/auth/login", payload);

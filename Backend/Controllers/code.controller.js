@@ -187,6 +187,13 @@ export const executeCode = async (req, res, next) => {
       });
     }
 
+    if (code.length > 50000) {
+      return res.status(400).json({
+        success: false,
+        message: "Code size exceeds 50KB limit.",
+      });
+    }
+
     const result = await executeCodeRemotely({
       code,
       language,

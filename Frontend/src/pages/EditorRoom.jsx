@@ -24,7 +24,7 @@ import { disconnectSocket } from "../services/socket";
 import {
   buildRoomInviteLink,
   clearAuthStorage,
-  createGuestIdentity,
+  getOrCreateGuestIdentity,
   getStoredUser,
   setStoredUser
 } from "../utils/helpers";
@@ -76,9 +76,7 @@ const EditorRoom = () => {
       };
     }
 
-    const guest = createGuestIdentity();
-    setStoredUser(guest);
-    return guest;
+    return getOrCreateGuestIdentity();
   }, []);
 
   const {
@@ -120,6 +118,8 @@ const EditorRoom = () => {
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
   const [newFileName, setNewFileName] = useState("");
   const [roomDetails, setRoomDetails] = useState(null);
+  const [renameModal, setRenameModal] = useState({ isOpen: false, fileName: "", newName: "" });
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, fileName: "" });
 
   const lastActivityIdRef = useRef("");
   const hasLoadedCodeSnapshotRef = useRef(false);
@@ -466,15 +466,13 @@ const EditorRoom = () => {
   };
 
   const handleRenameFile = (fileName) => {
-    const nextFileName = window.prompt("Rename file", fileName);
+    setRenameModal({ isOpen: true, fileName, newName: fileName });
+  };
 
-    if (typeof nextFileName !== "string") {
-      return;
-    }
-
+  const handleConfirmRename = () => {
     const result = renameFile({
-      currentFileName: fileName,
-      nextFileName
+      currentFileName: renameModal.fileName,
+      nextFileName: renameModal.newName
     });
 
     if (!result.success) {
@@ -482,24 +480,24 @@ const EditorRoom = () => {
       return;
     }
 
-    addConsoleLog("info", `Renamed ${fileName} to ${result.fileName}.`);
+    addConsoleLog("info", `Renamed ${renameModal.fileName} to ${result.fileName}.`);
+    setRenameModal({ isOpen: false, fileName: "", newName: "" });
   };
 
   const handleDeleteFile = (fileName) => {
-    const confirmed = window.confirm(`Delete ${fileName}?`);
+    setDeleteModal({ isOpen: true, fileName });
+  };
 
-    if (!confirmed) {
-      return;
-    }
-
-    const result = deleteFile(fileName);
+  const handleConfirmDelete = () => {
+    const result = deleteFile(deleteModal.fileName);
 
     if (!result.success) {
       toast.error(result.message || "Could not delete file.");
       return;
     }
 
-    addConsoleLog("warning", `Deleted file ${fileName}.`);
+    addConsoleLog("warning", `Deleted file ${deleteModal.fileName}.`);
+    setDeleteModal({ isOpen: false, fileName: "" });
   };
 
   const clearConsole = () => {
@@ -714,6 +712,70 @@ const EditorRoom = () => {
           >
             Create File
           </button>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={renameModal.isOpen}
+        title="Rename File"
+        onClose={() => setRenameModal({ isOpen: false, fileName: "", newName: "" })}
+      >
+        <div className="space-y-4">
+          <label className="block text-sm text-gray-300">
+            New file name
+            <input
+              type="text"
+              value={renameModal.newName}
+              onChange={(e) => setRenameModal({ ...renameModal, newName: e.target.value })}
+              placeholder="Enter new name"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleConfirmRename();
+                if (e.key === "Escape") setRenameModal({ isOpen: false, fileName: "", newName: "" });
+              }}
+              className="mt-2 w-full rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-2.5 text-white outline-none transition focus:border-[#3b82f6]"
+            />
+          </label>
+          <div className="flex gap-2">
+            <button
+              onClick={handleConfirmRename}
+              className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Rename
+            </button>
+            <button
+              onClick={() => setRenameModal({ isOpen: false, fileName: "", newName: "" })}
+              className="flex-1 rounded-lg border border-[#334155] px-3 py-2 text-sm font-semibold text-gray-300 transition hover:bg-white/5"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={deleteModal.isOpen}
+        title="Delete File"
+        onClose={() => setDeleteModal({ isOpen: false, fileName: "" })}
+      >
+        <div className="space-y-4">
+          <p className="text-gray-300">
+            Are you sure you want to delete <span className="font-semibold">{deleteModal.fileName}</span>? This action cannot be undone.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleConfirmDelete}
+              className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => setDeleteModal({ isOpen: false, fileName: "" })}
+              className="flex-1 rounded-lg border border-[#334155] px-3 py-2 text-sm font-semibold text-gray-300 transition hover:bg-white/5"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </Modal>
     </div>

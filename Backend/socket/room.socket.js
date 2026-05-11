@@ -1,26 +1,15 @@
 import { RoomModel } from "../Models/room.js";
 import { logger } from "../utils/logger.js";
 import { getExtensionFromLanguage, normalizeLanguage } from "../utils/language.js";
+import {
+  normalizeRoomId,
+  createFallbackFile,
+  ensureRoomFiles,
+} from "../utils/socketHelpers.js";
 
 const roomUsersStore = new Map();
 const socketMembershipStore = new Map();
 const DEFAULT_MAX_PARTICIPANTS = 8;
-
-const normalizeRoomId = (roomId = "") => roomId.trim().toUpperCase();
-
-const createFallbackFile = (language = "javascript", code = "") => {
-  const normalizedLanguage = normalizeLanguage(language);
-  const extension = getExtensionFromLanguage(normalizedLanguage);
-
-  return {
-    id: "main",
-    name: `main.${extension}`,
-    language: normalizedLanguage,
-    code,
-    lastEditedBy: "",
-    lastEditedAt: null,
-  };
-};
 
 const toClientUsers = (usersMap) => {
   return Array.from(usersMap.values()).map((user) => ({
@@ -28,28 +17,6 @@ const toClientUsers = (usersMap) => {
     name: user.name,
     status: user.status || "online",
   }));
-};
-
-const ensureRoomFiles = (room) => {
-  const existingFiles = Array.isArray(room.files) ? room.files : [];
-
-  if (existingFiles.length > 0) {
-    return {
-      files: existingFiles,
-      activeFileId: room.activeFileId || existingFiles[0].id,
-      changed: false,
-    };
-  }
-
-  const fallbackFile = createFallbackFile(room.language, room.code || "");
-  room.files = [fallbackFile];
-  room.activeFileId = fallbackFile.id;
-
-  return {
-    files: room.files,
-    activeFileId: room.activeFileId,
-    changed: true,
-  };
 };
 
 const getRoomParticipantLimit = async (roomId) => {

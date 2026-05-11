@@ -156,3 +156,23 @@ export const createGuestIdentity = () => {
 		name: `Guest ${random}`
 	};
 };
+
+export const getStoredGuestIdentity = () => {
+	const value = safeStorageGet(STORAGE_KEYS.GUEST_IDENTITY);
+	return safeJsonParse(value, null);
+};
+
+export const setStoredGuestIdentity = (guest) => {
+	safeStorageSet(STORAGE_KEYS.GUEST_IDENTITY, JSON.stringify(guest));
+};
+
+export const getOrCreateGuestIdentity = () => {
+	const existing = getStoredGuestIdentity();
+	if (existing && existing.id && existing.name) {
+		return existing;
+	}
+
+	const newGuest = createGuestIdentity();
+	setStoredGuestIdentity(newGuest);
+	return newGuest;
+};

@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 
 import { UserModel } from "../Models/user.js";
-import { generateToken } from "../utils/generateToken.js";
+import { generateToken, generateRefreshToken, verifyRefreshToken } from "../utils/generateToken.js";
 
 const sanitizeUser = (user) => ({
   id: user._id,
@@ -48,16 +48,28 @@ export const registerUser = async (req, res, next) => {
       password: hashedPassword,
     });
 
-    const token = generateToken({
+    const accessToken = generateToken({
       id: user._id,
       email: user.email,
       name: user.name,
     });
 
+    const refreshToken = generateRefreshToken({
+      id: user._id,
+      email: user.email,
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     res.status(201).json({
       success: true,
       message: "Registration successful",
-      token,
+      token: accessToken,
       user: sanitizeUser(user),
     });
   } catch (error) {
@@ -95,16 +107,85 @@ export const loginUser = async (req, res, next) => {
       });
     }
 
-    const token = generateToken({
+    const accessToken = generateToken({
       id: user._id,
       email: user.email,
       name: user.name,
     });
 
+    const refreshToken = generateRefreshToken({
+      id: user._id,
+      email: user.email,
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     res.status(200).json({
       success: true,
       message: "Login successful",
-      token,
+      token: accessToken,
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const refreshAccessToken = async (req, res, next) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token not found. Please login again.",
+      });
+    }
+
+    const decoded = verifyRefreshToken(refreshToken);
+
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token expired. Please login again.",
+      });
+    }
+
+    const user = await UserModel.findById(decoded.id);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    const newAccessToken = generateToken({
+      id: user._id,
+      email: user.email,
+      name: user.name,
+    });
+
+    const newRefreshToken = generateRefreshToken({
+      id: user._id,
+      email: user.email,
+    });
+
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      success: true,
+      token: newAccessToken,
       user: sanitizeUser(user),
     });
   } catch (error) {

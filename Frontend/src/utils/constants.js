@@ -7,7 +7,8 @@ export const SOCKET_URL =
 export const STORAGE_KEYS = {
 	TOKEN: "cc_token",
 	USER: "cc_user",
-	RECENT_ROOMS: "cc_recent_rooms"
+	RECENT_ROOMS: "cc_recent_rooms",
+	GUEST_IDENTITY: "cc_guest_identity"
 };
 
 export const LANGUAGES = [

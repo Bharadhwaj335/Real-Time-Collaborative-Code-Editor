@@ -5,47 +5,15 @@ import {
   getLanguageFromFileName,
   normalizeLanguage,
 } from "../utils/language.js";
+import {
+  normalizeRoomId,
+  createFallbackFile,
+  ensureRoomFiles,
+} from "../utils/socketHelpers.js";
 
-const normalizeRoomId = (roomId = "") => roomId.trim().toUpperCase();
 const MAX_FILES_PER_ROOM = 25;
 
 const createFileId = () => `file-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-
-const createFallbackFile = (language = "javascript", code = "") => {
-  const normalizedLanguage = normalizeLanguage(language);
-  const extension = getExtensionFromLanguage(normalizedLanguage);
-
-  return {
-    id: "main",
-    name: `main.${extension}`,
-    language: normalizedLanguage,
-    code,
-    lastEditedBy: "",
-    lastEditedAt: null,
-  };
-};
-
-const ensureRoomFiles = (room) => {
-  const existingFiles = Array.isArray(room.files) ? room.files : [];
-
-  if (existingFiles.length > 0) {
-    return {
-      files: existingFiles,
-      activeFileId: room.activeFileId || existingFiles[0].id,
-      changed: false,
-    };
-  }
-
-  const fallbackFile = createFallbackFile(room.language, room.code || "");
-  room.files = [fallbackFile];
-  room.activeFileId = fallbackFile.id;
-
-  return {
-    files: room.files,
-    activeFileId: room.activeFileId,
-    changed: true,
-  };
-};
 
 const normalizeChanges = (changes = []) => {
   if (!Array.isArray(changes)) return [];
@@ -146,6 +114,28 @@ const emitFileListUpdate = (io, roomId, room, extra = {}) => {
   });
 };
 
+const debounceStore = new Map();
+const DEBOUNCE_DELAY_MS = 3000;
+
+const scheduleRoomSave = (roomId, room) => {
+  const existing = debounceStore.get(roomId);
+
+  if (existing) {
+    clearTimeout(existing.timerId);
+  }
+
+  const timerId = setTimeout(async () => {
+    try {
+      await room.save();
+      debounceStore.delete(roomId);
+    } catch (error) {
+      logger.error("Debounced room save failed", error);
+    }
+  }, DEBOUNCE_DELAY_MS);
+
+  debounceStore.set(roomId, { room, timerId });
+};
+
 export const registerCodeSyncSocket = (io, socket) => {
   socket.on("CODE_CHANGE", async (payload = {}) => {
     try {
@@ -203,7 +193,7 @@ export const registerCodeSyncSocket = (io, socket) => {
       room.code = targetFile.code || "";
       room.activeFileId = targetFile.id || activeFileId;
 
-      await room.save();
+      scheduleRoomSave(roomId, room);
 
       if (createdNewFileFromCodeChange) {
         emitFileListUpdate(io, roomId, room);
