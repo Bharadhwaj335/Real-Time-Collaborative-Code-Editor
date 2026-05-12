@@ -34,6 +34,7 @@ const persistRoomUsers = async (roomId, users) => {
       $setOnInsert: {
         roomId,
         language: "javascript",
+        currentLanguage: "javascript",
       },
     },
     { upsert: true, returnDocument: "after" }
@@ -66,6 +67,7 @@ export const registerRoomSocket = (io, socket) => {
       return;
     }
 
+    const departingUser = usersMap.get(userId);
     usersMap.delete(userId);
     socketMembershipStore.delete(socket.id);
     socket.leave(roomId);
@@ -79,7 +81,12 @@ export const registerRoomSocket = (io, socket) => {
       maxParticipants,
       currentParticipants: users.length,
     });
-    io.to(roomId).emit("USER_LEFT", { roomId, userId, users });
+    io.to(roomId).emit("USER_LEFT", {
+      roomId,
+      userId,
+      userName: departingUser?.name || "Collaborator",
+      users,
+    });
 
     if (users.length === 0) {
       roomUsersStore.delete(roomId);
@@ -175,6 +182,7 @@ export const registerRoomSocket = (io, socket) => {
         roomName: room.roomName || room.name || "",
         visibility: room.visibility || "private",
         language: room.language || "javascript",
+        currentLanguage: room.currentLanguage || room.language || "javascript",
         files,
         activeFileId,
         maxParticipants,

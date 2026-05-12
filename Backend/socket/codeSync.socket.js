@@ -190,6 +190,7 @@ export const registerCodeSyncSocket = (io, socket) => {
       targetFile.lastEditedAt = new Date();
 
       room.language = nextLanguage;
+      room.currentLanguage = nextLanguage;
       room.code = targetFile.code || "";
       room.activeFileId = targetFile.id || activeFileId;
 
@@ -263,6 +264,7 @@ export const registerCodeSyncSocket = (io, socket) => {
       room.files.push(newFile);
       room.activeFileId = newFile.id;
       room.language = newFile.language;
+      room.currentLanguage = newFile.language;
       room.code = newFile.code;
 
       await room.save();
@@ -329,15 +331,22 @@ export const registerCodeSyncSocket = (io, socket) => {
       targetFile.language = nextLanguage;
       room.activeFileId = targetFile.id || activeFileId;
       room.language = nextLanguage;
+      room.currentLanguage = nextLanguage;
       room.code = targetFile.code || "";
 
       await room.save();
+
+      emitFileListUpdate(io, roomId, room, {
+        language: room.language,
+      });
 
       io.to(roomId).emit("FILE_CHANGE", {
         roomId,
         fileId: targetFile.id,
         fileName: targetFile.name,
         language: targetFile.language,
+        userId: payload.userId,
+        userName: payload.userName,
       });
     } catch (error) {
       logger.error("FILE_CHANGE failed", error);
@@ -393,6 +402,7 @@ export const registerCodeSyncSocket = (io, socket) => {
 
       room.activeFileId = activeFile.id;
       room.language = activeFile.language || room.language;
+      room.currentLanguage = room.language;
       room.code = activeFile.code || "";
 
       await room.save();
@@ -461,6 +471,7 @@ export const registerCodeSyncSocket = (io, socket) => {
 
       room.activeFileId = nextActive?.id || "";
       room.language = nextActive?.language || room.language;
+      room.currentLanguage = room.language;
       room.code = nextActive?.code || "";
 
       await room.save();

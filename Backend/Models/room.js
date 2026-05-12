@@ -74,6 +74,10 @@ const roomSchema = new Schema(
             required: [true, "language is required"],
             default: "javascript",
         },
+        currentLanguage: {
+            type: String,
+            default: "javascript",
+        },
         code: {
             type: String,
             default: "",
@@ -119,6 +123,14 @@ roomSchema.pre("validate", function normalizeRoomName() {
 
     if (!this.roomName && this.name) {
         this.roomName = this.name;
+    }
+
+    if (!this.currentLanguage && this.language) {
+        this.currentLanguage = this.language;
+    }
+
+    if (!this.language && this.currentLanguage) {
+        this.language = this.currentLanguage;
     }
 });
 

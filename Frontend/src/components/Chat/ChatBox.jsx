@@ -14,7 +14,9 @@ const normalizeMessage = (message) => ({
   senderId: message?.senderId || message?.sender?.id,
   senderName: message?.senderName || message?.sender?.name || message?.username,
   timestamp: message?.timestamp || message?.createdAt || new Date().toISOString(),
-  clientTempId: message?.clientTempId
+  clientTempId: message?.clientTempId,
+  isSystem: Boolean(message?.isSystem),
+  systemType: message?.systemType || ""
 });
 
 const ChatBox = ({ roomId, user }) => {
@@ -25,6 +27,8 @@ const ChatBox = ({ roomId, user }) => {
   const [loading, setLoading] = useState(true);
   const messageContainerRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const shouldAutoScrollRef = useRef(true);
+  const languageByFileRef = useRef({});
 
   const currentUserId = useMemo(() => user?.id, [user?.id]);
 
@@ -100,6 +104,59 @@ const ChatBox = ({ roomId, user }) => {
       });
     };
 
+    const appendSystemMessage = (systemType, text) => {
+      setMessages((prev) => [
+        ...prev,
+        normalizeMessage({
+          id: `system-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          roomId,
+          text,
+          isSystem: true,
+          systemType,
+          timestamp: new Date().toISOString()
+        })
+      ]);
+    };
+
+    const handleUserJoined = (payload) => {
+      const joinedUser = payload?.user;
+
+      if (!joinedUser?.id || joinedUser.id === currentUserId) {
+        return;
+      }
+
+      appendSystemMessage("user_joined", `${joinedUser.name || "Collaborator"} joined the room.`);
+    };
+
+    const handleUserLeft = (payload) => {
+      const leftUserId = payload?.userId || payload?.id;
+
+      if (!leftUserId || leftUserId === currentUserId) {
+        return;
+      }
+
+      const leftUserName = payload?.userName || "A collaborator";
+      appendSystemMessage("user_left", `${leftUserName} left the room.`);
+    };
+
+    const handleFileChange = (payload) => {
+      if (!payload?.language || !payload?.userId) {
+        return;
+      }
+
+      const key = payload?.fileId || payload?.fileName || "active";
+      const previousLanguage = languageByFileRef.current[key];
+      const nextLanguage = String(payload.language).toLowerCase();
+      languageByFileRef.current[key] = nextLanguage;
+
+      if (!previousLanguage || previousLanguage === nextLanguage) {
+        return;
+      }
+
+      const actor = payload?.userName || "A collaborator";
+      appendSystemMessage("language_changed", `${actor} changed language to ${nextLanguage}.`);
+    };
+
     const handleTypingUpdate = (payload) => {
       if (!payload?.userId || payload.userId === currentUserId) return;
       if (payload?.roomId && payload.roomId !== roomId) return;
@@ -124,15 +181,25 @@ const ChatBox = ({ roomId, user }) => {
 
     socket.on(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
     socket.on(SOCKET_EVENTS.USER_TYPING, handleTypingUpdate);
+    socket.on(SOCKET_EVENTS.USER_JOINED, handleUserJoined);
+    socket.on(SOCKET_EVENTS.USER_LEFT, handleUserLeft);
+    socket.on(SOCKET_EVENTS.FILE_CHANGE, handleFileChange);
 
     return () => {
       socket.off(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
       socket.off(SOCKET_EVENTS.USER_TYPING, handleTypingUpdate);
+      socket.off(SOCKET_EVENTS.USER_JOINED, handleUserJoined);
+      socket.off(SOCKET_EVENTS.USER_LEFT, handleUserLeft);
+      socket.off(SOCKET_EVENTS.FILE_CHANGE, handleFileChange);
     };
   }, [currentUserId, roomId, socket]);
 
   useEffect(() => {
     if (!messageContainerRef.current) return;
+
+    if (!shouldAutoScrollRef.current) {
+      return;
+    }
 
     messageContainerRef.current.scrollTo({
       top: messageContainerRef.current.scrollHeight,
@@ -186,13 +253,30 @@ const ChatBox = ({ roomId, user }) => {
     setMessage("");
   };
 
+  const handleMessageScroll = () => {
+    const container = messageContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const distanceToBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+
+    shouldAutoScrollRef.current = distanceToBottom < 80;
+  };
+
   return (
     <section className="flex h-full min-h-0 flex-col rounded-xl border border-[#334155] bg-[#0f172a]">
       <header className="border-b border-[#334155] px-4 py-3">
         <h3 className="text-sm font-semibold text-white">Room Chat</h3>
       </header>
 
-      <div ref={messageContainerRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+      <div
+        ref={messageContainerRef}
+        onScroll={handleMessageScroll}
+        className="flex-1 space-y-3 overflow-y-auto px-4 py-4"
+      >
         {loading && <Loader label="Loading chat..." />}
 
         {!loading && messages.length === 0 && (
@@ -211,7 +295,7 @@ const ChatBox = ({ roomId, user }) => {
           ))}
       </div>
 
-      <div className="border-t border-[#334155] p-3">
+      <div className="sticky bottom-0 border-t border-[#334155] bg-[#0f172a] p-3">
         {Object.keys(typingUsers).length > 0 && (
           <p className="mb-2 rounded-md border border-[#334155] bg-[#111827] px-2 py-1 text-xs text-amber-200">
             {Object.values(typingUsers).slice(0, 2).join(", ")}

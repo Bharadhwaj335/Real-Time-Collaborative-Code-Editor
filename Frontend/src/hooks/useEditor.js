@@ -605,6 +605,19 @@ const useEditor = ({ roomId, user }) => {
       nextLanguage: normalizedLanguage,
       changes: []
     });
+
+    if (!roomId || !userId) {
+      return;
+    }
+
+    socket.emit(SOCKET_EVENTS.FILE_CHANGE, {
+      roomId,
+      fileId: currentState.fileMeta[currentFileName]?.id,
+      fileName: currentFileName,
+      language: normalizedLanguage,
+      userId,
+      userName
+    });
   };
 
   const hydrateFilesFromSnapshot = (snapshotFiles = {}, preferredActiveFile = "") => {

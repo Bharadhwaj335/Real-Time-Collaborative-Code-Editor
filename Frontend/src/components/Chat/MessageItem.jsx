@@ -2,6 +2,16 @@ import Avatar from "../Common/Avatar";
 import { formatMessageTime } from "../../utils/helpers";
 
 const MessageItem = ({ message, isOwnMessage }) => {
+  if (message?.isSystem) {
+    return (
+      <div className="flex justify-center">
+        <p className="rounded-md border border-[#334155] bg-[#111827] px-2.5 py-1 text-[11px] text-slate-300">
+          {message?.text}
+        </p>
+      </div>
+    );
+  }
+
   const senderName =
     message?.senderName ||
     message?.sender?.name ||

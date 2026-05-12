@@ -25,8 +25,7 @@ import {
   buildRoomInviteLink,
   clearAuthStorage,
   getOrCreateGuestIdentity,
-  getStoredUser,
-  setStoredUser
+  getStoredUser
 } from "../utils/helpers";
 import { SOCKET_EVENTS } from "../utils/constants";
 
@@ -120,6 +119,7 @@ const EditorRoom = () => {
   const [roomDetails, setRoomDetails] = useState(null);
   const [renameModal, setRenameModal] = useState({ isOpen: false, fileName: "", newName: "" });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, fileName: "" });
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
 
   const lastActivityIdRef = useRef("");
   const hasLoadedCodeSnapshotRef = useRef(false);
@@ -512,6 +512,15 @@ const EditorRoom = () => {
     navigate("/login", { replace: true });
   };
 
+  const handleLeaveRoom = () => {
+    socket.emit(SOCKET_EVENTS.LEAVE_ROOM, {
+      roomId,
+      userId: user.id
+    });
+
+    navigate("/home", { replace: true });
+  };
+
   const roomDisplayName =
     roomDetails?.name || roomDetails?.roomName || roomDetails?.roomId || roomId;
 
@@ -526,7 +535,7 @@ const EditorRoom = () => {
       />
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
-        <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[56px_240px_minmax(0,1fr)_320px]">
+        <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[56px_240px_minmax(0,1fr)_360px] xl:grid-cols-[56px_240px_minmax(0,1fr)_380px]">
           <aside className="flex min-h-0 flex-col items-center gap-2 rounded-xl border border-[#334155] bg-[#1e293b] p-2">
             {sidebarItems.map((item) => (
               <button
@@ -672,6 +681,7 @@ const EditorRoom = () => {
               isConnected={isConnected}
               maxParticipants={maxParticipants || roomUsers.length}
               currentParticipants={currentParticipants || roomUsers.length}
+              onLeaveRoom={() => setLeaveModalOpen(true)}
             />
 
             <div className="min-h-0 flex-1 overflow-hidden">
@@ -774,6 +784,32 @@ const EditorRoom = () => {
               className="flex-1 rounded-lg border border-[#334155] px-3 py-2 text-sm font-semibold text-gray-300 transition hover:bg-white/5"
             >
               Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={leaveModalOpen}
+        title="Leave Room"
+        onClose={() => setLeaveModalOpen(false)}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300">
+            Leave this room and return to dashboard?
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleLeaveRoom}
+              className="flex-1 rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
+            >
+              Leave
+            </button>
+            <button
+              onClick={() => setLeaveModalOpen(false)}
+              className="flex-1 rounded-lg border border-[#334155] px-3 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/5"
+            >
+              Stay
             </button>
           </div>
         </div>

@@ -4,7 +4,8 @@ const RoomHeader = ({
 	language,
 	isConnected,
 	maxParticipants,
-	currentParticipants
+	currentParticipants,
+	onLeaveRoom
 }) => {
 	return (
 		<div className="rounded-xl border border-white/10 bg-[#252526] p-4">
@@ -36,6 +37,13 @@ const RoomHeader = ({
 					{isConnected ? "Connected" : "Reconnecting"}
 				</span>
 			</div>
+
+			<button
+				onClick={onLeaveRoom}
+				className="mt-3 w-full rounded-lg border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-rose-200 transition hover:bg-rose-500/20"
+			>
+				Leave Room
+			</button>
 		</div>
 	);
 };

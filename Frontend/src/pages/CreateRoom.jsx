@@ -5,7 +5,6 @@ import Button from "../components/Common/Button";
 import Navbar from "../components/Common/Navbar";
 import { createRoom, joinRoom } from "../services/api";
 import { disconnectSocket } from "../services/socket";
-import { DEFAULT_LANGUAGE, LANGUAGES } from "../utils/constants";
 import {
   clearAuthStorage,
   getRecentRooms,
@@ -17,8 +16,6 @@ const CreateRoom = () => {
   const navigate = useNavigate();
 
   const [roomName, setRoomName] = useState("");
-  const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
-  const [visibility, setVisibility] = useState("private");
   const [maxParticipants, setMaxParticipants] = useState(2);
   const [loading, setLoading] = useState(false);
   const [recentRooms, setRecentRooms] = useState([]);
@@ -41,14 +38,12 @@ const CreateRoom = () => {
       const response = await createRoom({
         name: trimmedRoomName,
         roomName: trimmedRoomName,
-        language,
-        visibility,
         maxParticipants
       });
 
       const roomId = response?.roomId || response?.data?.roomId;
       const roomData = response?.data || {};
-      const resolvedLanguage = roomData?.language || language;
+      const resolvedLanguage = roomData?.language || "javascript";
       const resolvedRoomName =
         roomData?.name || roomData?.roomName || trimmedRoomName || `Room-${roomId?.slice(0, 5) || "new"}`;
 
@@ -116,22 +111,6 @@ const CreateRoom = () => {
               />
             </label>
 
-            {/* LANGUAGE */}
-            <label className="text-sm">
-              <span className="mb-2 block text-slate-300">Language</span>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-[#252526] px-3 py-2.5 text-white outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
-              >
-                {LANGUAGES.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
             {/* PARTICIPANTS */}
             <label className="text-sm">
               <span className="mb-2 block text-slate-300">
@@ -145,35 +124,6 @@ const CreateRoom = () => {
                 className="w-full rounded-lg border border-white/10 bg-[#252526] px-3 py-2.5 text-white outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
               />
             </label>
-
-            {/* VISIBILITY */}
-            <div>
-              <p className="mb-2 text-sm text-slate-300">Visibility</p>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <button
-                  onClick={() => setVisibility("private")}
-                  className={`rounded-lg px-4 py-2.5 text-sm transition ${
-                    visibility === "private"
-                      ? "border border-blue-400 bg-blue-500/10 text-blue-300 shadow-sm"
-                      : "border border-white/10 bg-[#252526] text-slate-300 hover:border-blue-400/50"
-                  }`}
-                >
-                  🔒 Private
-                </button>
-
-                <button
-                  onClick={() => setVisibility("public")}
-                  className={`rounded-lg px-4 py-2.5 text-sm transition ${
-                    visibility === "public"
-                      ? "border border-blue-400 bg-blue-500/10 text-blue-300 shadow-sm"
-                      : "border border-white/10 bg-[#252526] text-slate-300 hover:border-blue-400/50"
-                  }`}
-                >
-                  🌍 Public
-                </button>
-              </div>
-            </div>
 
             {/* BUTTONS */}
             <div className="grid gap-3 sm:grid-cols-2">

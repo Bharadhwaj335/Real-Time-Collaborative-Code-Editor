@@ -24,6 +24,14 @@ export const LANGUAGES = [
 	{ label: "CSS", value: "css" }
 ];
 
+export const ROOM_LANGUAGES = [
+	{ label: "JavaScript", value: "javascript" },
+	{ label: "C++", value: "cpp" },
+	{ label: "Python", value: "python" },
+	{ label: "Java", value: "java" },
+	{ label: "C", value: "c" }
+];
+
 export const DEFAULT_LANGUAGE = LANGUAGES[0].value;
 
 export const SOCKET_EVENTS = {
