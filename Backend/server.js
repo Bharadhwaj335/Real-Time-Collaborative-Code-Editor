@@ -36,7 +36,16 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: "1mb" }));
+
+// Request size limits to prevent abuse
+app.use(express.json({ limit: "500kb" }));
+app.use(express.urlencoded({ limit: "500kb", extended: true }));
+
+// Add request timeout
+app.use((req, res, next) => {
+  req.setTimeout(30000); // 30 second timeout
+  next();
+});
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, message: "Backend is running" });

@@ -1,9 +1,8 @@
 const variantClasses = {
-	primary:
-		"bg-[#3b82f6] hover:bg-[#2563eb] text-white border border-[#3b82f6]/40 shadow-[0_0_20px_rgba(59,130,246,0.25)]",
-	secondary: "bg-[#1e293b] hover:bg-[#334155] text-white border border-[#334155]",
-	ghost: "bg-transparent hover:bg-white/5 text-slate-200 border border-[#334155]",
-	danger: "bg-rose-600 hover:bg-rose-500 text-white border border-rose-400/40"
+	primary: "cc-button-primary",
+	secondary: "cc-button",
+	ghost: "cc-button-ghost",
+	danger: "bg-[#6b2a2a] hover:bg-[#8f3636] text-white border border-[#8f3636]"
 };
 
 const Button = ({
@@ -21,7 +20,7 @@ const Button = ({
 		<button
 			type={type}
 			disabled={disabled || loading}
-			className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${variantClass} ${className}`}
+			className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${variantClass} ${className}`}
 			{...props}
 		>
 			{loading && (

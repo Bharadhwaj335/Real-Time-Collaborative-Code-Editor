@@ -625,7 +625,7 @@ const EditorRoom = () => {
     roomDetails?.name || roomDetails?.roomName || roomDetails?.roomId || roomId;
 
   return (
-    <div className="flex h-screen min-h-screen flex-col bg-[#0f172a] text-white">
+    <div className="flex h-screen min-h-screen flex-col bg-[#1e1e1e] text-white">
       <Navbar
         roomId={roomId}
         connectedUsers={roomUsers.length}
@@ -636,7 +636,7 @@ const EditorRoom = () => {
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
         <div className="flex min-h-0 flex-1 gap-3">
-          <aside className="flex min-h-0 flex-col items-center gap-2 rounded-xl border border-[#334155] bg-[#1e293b] p-2">
+          <aside className="cc-workbench-rail flex min-h-0 flex-col items-center gap-2 rounded-xl p-2">
             {sidebarItems.map((item) => (
               <button
                 key={item.key}
@@ -644,8 +644,8 @@ const EditorRoom = () => {
                 title={item.label}
                 className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border transition ${
                   sidebarMode === item.key
-                    ? "border-[#3b82f6]/70 bg-[#3b82f6]/20 text-blue-200"
-                    : "border-[#334155] bg-[#0f172a] text-slate-300 hover:border-[#3b82f6]/50"
+                    ? "border-[#007acc] bg-[#007acc]/20 text-[#cfe9ff]"
+                    : "border-[#3c3c3c] bg-[#1e1e1e] text-slate-300 hover:border-[#007acc]"
                 }`}
               >
                 <item.icon />
@@ -654,16 +654,16 @@ const EditorRoom = () => {
           </aside>
 
           <aside
-            className="min-h-0 shrink-0 overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b]"
+            className="cc-panel min-h-0 shrink-0 overflow-hidden rounded-xl"
             style={{ width: `${leftPanelWidth}px` }}
           >
             {sidebarMode === "files" ? (
               <div className="flex h-full min-h-0 flex-col">
-                <div className="flex items-center justify-between border-b border-[#334155] px-3 py-2">
+                <div className="cc-panel-header flex items-center justify-between px-3 py-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Files</p>
                   <button
                     onClick={() => setIsFileModalOpen(true)}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#334155] bg-[#0f172a] text-slate-200 transition hover:border-[#3b82f6]/60"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#3c3c3c] bg-[#1e1e1e] text-slate-200 transition hover:border-[#007acc]"
                   >
                     <FaPlus className="text-[11px]" />
                   </button>
@@ -675,8 +675,8 @@ const EditorRoom = () => {
                       key={file.name}
                       className={`rounded-lg border px-2 py-1.5 transition ${
                         file.name === activeFileName
-                          ? "border-[#3b82f6]/70 bg-[#3b82f6]/20"
-                          : "border-[#334155] bg-[#0f172a]"
+                          ? "border-[#007acc] bg-[#007acc]/20"
+                          : "border-[#3c3c3c] bg-[#1e1e1e]"
                       }`}
                     >
                       <button
@@ -689,7 +689,7 @@ const EditorRoom = () => {
                       <div className="mt-1.5 flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleRenameFile(file.name)}
-                          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[#334155] text-slate-300 transition hover:border-[#3b82f6]/60 hover:text-blue-200"
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[#3c3c3c] text-slate-300 transition hover:border-[#007acc] hover:text-[#cfe9ff]"
                           title="Rename file"
                         >
                           <FaRegEdit className="text-[10px]" />
@@ -697,7 +697,7 @@ const EditorRoom = () => {
 
                         <button
                           onClick={() => handleDeleteFile(file.name)}
-                          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[#334155] text-slate-300 transition hover:border-[#ef4444]/60 hover:text-rose-300"
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[#3c3c3c] text-slate-300 transition hover:border-[#ef4444]/60 hover:text-rose-300"
                           title="Delete file"
                         >
                           <FaTrash className="text-[10px]" />
@@ -724,10 +724,10 @@ const EditorRoom = () => {
             className="group hidden w-2 shrink-0 cursor-col-resize items-center justify-center rounded-md lg:flex"
             title="Drag to resize explorer"
           >
-            <span className="h-14 w-1 rounded-full bg-[#334155] transition group-hover:bg-[#3b82f6]/70" />
+            <span className="h-14 w-1 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#007acc]" />
           </button>
 
-          <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b]">
+          <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1e1e1e]">
             <EditorToolbar
               roomId={roomId}
               language={language}
@@ -739,15 +739,15 @@ const EditorRoom = () => {
               executionStatus={executionStatus}
             />
 
-            <div className="flex items-center gap-2 overflow-x-auto border-b border-[#334155] bg-[#0f172a] px-3 py-2">
+            <div className="flex items-center gap-2 overflow-x-auto border-b border-[#2a2a2a] bg-[#252526] px-3 py-2">
               {fileTabs.map((file) => (
                 <button
                   key={file.name}
                   onClick={() => setActiveFileName(file.name)}
                   className={`rounded-lg border px-3 py-1.5 text-xs transition ${
                     file.name === activeFileName
-                      ? "border-[#3b82f6]/70 bg-[#3b82f6]/20 text-blue-200"
-                      : "border-[#334155] bg-[#1e293b] text-slate-300 hover:border-[#3b82f6]/50"
+                      ? "border-[#007acc] bg-[#007acc]/20 text-[#cfe9ff]"
+                      : "border-[#3c3c3c] bg-[#1e1e1e] text-slate-300 hover:border-[#007acc]"
                   }`}
                 >
                   {file.name}
@@ -756,7 +756,7 @@ const EditorRoom = () => {
 
               <button
                 onClick={() => setIsFileModalOpen(true)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#334155] bg-[#1e293b] text-slate-300 transition hover:border-[#3b82f6]/50"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#3c3c3c] bg-[#1e1e1e] text-slate-300 transition hover:border-[#007acc]"
               >
                 <FaPlus className="text-[10px]" />
               </button>
@@ -774,7 +774,7 @@ const EditorRoom = () => {
               />
             </div>
 
-            <div className="border-t border-[#334155] bg-[#0f172a] px-3 py-2 text-xs text-slate-300">
+            <div className="border-t border-[#2a2a2a] bg-[#252526] px-3 py-2 text-xs text-slate-300">
               {recentActivity.length === 0 ? (
                 <p>No remote edits yet.</p>
               ) : (
@@ -791,11 +791,11 @@ const EditorRoom = () => {
             className="group hidden w-2 shrink-0 cursor-col-resize items-center justify-center rounded-md lg:flex"
             title="Drag to resize right panel"
           >
-            <span className="h-14 w-1 rounded-full bg-[#334155] transition group-hover:bg-[#3b82f6]/70" />
+            <span className="h-14 w-1 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#007acc]" />
           </button>
 
           <aside
-            className="flex min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b] p-3 lg:w-auto"
+            className="cc-panel flex min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-xl p-3 lg:w-auto"
             style={{ width: `${rightPanelWidth}px` }}
           >
             <div className="shrink-0 overflow-hidden" style={{ height: `${roomPanelHeight}px` }}>
@@ -814,7 +814,7 @@ const EditorRoom = () => {
               className="group my-2 flex h-3 shrink-0 cursor-row-resize items-center justify-center rounded-md"
               title="Drag to resize room panel"
             >
-              <span className="h-1 w-14 rounded-full bg-[#334155] transition group-hover:bg-[#3b82f6]/70" />
+              <span className="h-1 w-14 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#007acc]" />
             </button>
 
             <div className="min-h-[180px] flex-1 overflow-hidden">
@@ -829,10 +829,10 @@ const EditorRoom = () => {
           className="group flex h-3 shrink-0 cursor-row-resize items-center justify-center rounded-md"
           title="Drag to resize output panel"
         >
-          <span className="h-1 w-16 rounded-full bg-[#334155] transition group-hover:bg-[#3b82f6]/70" />
+            <span className="h-1 w-16 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#007acc]" />
         </button>
 
-        <div className="shrink-0 overflow-hidden" style={{ height: `${outputPanelHeight}px` }}>
+            <div className="shrink-0 overflow-hidden" style={{ height: `${outputPanelHeight}px` }}>
           <OutputConsole
             stdout={output.stdout}
             stderr={output.stderr}
@@ -841,6 +841,18 @@ const EditorRoom = () => {
             executionStatus={executionStatus}
             onClear={clearConsole}
           />
+        </div>
+
+            <div className="cc-statusbar flex items-center justify-between gap-3 border-t border-[#2a2a2a] px-4 py-2 text-xs">
+          <div className="flex items-center gap-3">
+            <span>Ln {roomUsers.length ? 1 : 1}, Col 1</span>
+            <span>{language}</span>
+            <span>{roomDisplayName}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span>{isConnected ? "Live Share" : "Offline"}</span>
+            <span>{currentParticipants || roomUsers.length} collaborators</span>
+          </div>
         </div>
       </div>
 

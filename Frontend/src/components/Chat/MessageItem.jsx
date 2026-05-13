@@ -5,7 +5,7 @@ const MessageItem = ({ message, isOwnMessage }) => {
   if (message?.isSystem) {
     return (
       <div className="flex justify-center">
-        <p className="rounded-md border border-[#334155] bg-[#111827] px-2.5 py-1 text-[11px] text-slate-300">
+        <p className="rounded-md border border-[#3c3c3c] bg-[#252526] px-2.5 py-1 text-[11px] text-slate-300">
           {message?.text}
         </p>
       </div>
@@ -27,11 +27,11 @@ const MessageItem = ({ message, isOwnMessage }) => {
       <div
         className={`max-w-[82%] rounded-xl border px-3 py-2 text-sm ${
           isOwnMessage
-            ? "border-[#3b82f6]/50 bg-[#3b82f6]/20 text-blue-50"
-            : "border-[#334155] bg-[#1e293b] text-slate-100"
+            ? "border-[#007acc]/50 bg-[#007acc]/20 text-white"
+            : "border-[#3c3c3c] bg-[#252526] text-slate-100"
         }`}
       >
-        <p className={`mb-1 text-xs font-semibold ${isOwnMessage ? "text-blue-200" : "text-slate-300"}`}>
+        <p className={`mb-1 text-xs font-semibold ${isOwnMessage ? "text-[#cfe9ff]" : "text-slate-300"}`}>
           {isOwnMessage ? "You" : senderName}
         </p>
 

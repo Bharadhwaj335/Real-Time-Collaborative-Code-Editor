@@ -21,22 +21,22 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#111318] to-[#1e293b] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#1e1e1e] via-[#181818] to-[#111111] text-white">
       
       <Navbar userName={user?.name || "Student"} onLogout={handleLogout} />
 
       <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 lg:grid-cols-[2fr_1fr]">
         
         {/* MAIN CARD */}
-        <section className="rounded-3xl border border-white/10 bg-[#1e1e1e]/80 backdrop-blur p-8 shadow-2xl">
+        <section className="cc-workbench rounded-2xl p-8">
           
-          <p className="text-xs uppercase tracking-[0.3em] text-blue-400">
+          <p className="text-xs uppercase tracking-[0.3em] text-[#4ec9b0]">
             Dashboard
           </p>
 
           <h1 className="mt-3 text-4xl font-extrabold">
             Welcome back,{" "}
-            <span className="text-blue-400">
+            <span className="text-[#cfe9ff]">
               {user?.name || "Student"}
             </span>
           </h1>
@@ -51,9 +51,9 @@ const Home = () => {
             {/* CREATE */}
             <button
               onClick={() => navigate("/create-room")}
-              className="rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 p-[2px] transition hover:scale-[1.02]"
+                className="rounded-2xl bg-gradient-to-r from-[#0e639c] to-[#007acc] p-[2px] transition hover:scale-[1.02]"
             >
-              <div className="rounded-2xl bg-[#1e1e1e] px-6 py-4 text-left">
+                <div className="rounded-2xl bg-[#252526] px-6 py-4 text-left">
                 <h2 className="text-lg font-semibold">🚀 Create Room</h2>
                 <p className="text-xs text-slate-400">
                   Start a new coding session
@@ -64,7 +64,7 @@ const Home = () => {
             {/* JOIN */}
             <button
               onClick={() => navigate("/join-room")}
-              className="rounded-2xl border border-white/10 bg-[#252526] px-6 py-4 text-left transition hover:border-blue-400/60 hover:bg-[#2a2b2e]"
+                className="rounded-2xl border border-[#3c3c3c] bg-[#252526] px-6 py-4 text-left transition hover:border-[#007acc] hover:bg-[#2d2d2d]"
             >
               <h2 className="text-lg font-semibold">🔗 Join Room</h2>
               <p className="text-xs text-slate-400">
@@ -76,7 +76,7 @@ const Home = () => {
         </section>
 
         {/* RECENT ROOMS */}
-        <aside className="rounded-3xl border border-white/10 bg-[#1b1d24]/80 backdrop-blur p-6 shadow-xl">
+        <aside className="cc-panel rounded-2xl p-6 shadow-xl">
           
           <h2 className="text-lg font-semibold">Recent Rooms</h2>
           <p className="mt-1 text-xs text-slate-400">
@@ -86,7 +86,7 @@ const Home = () => {
           <div className="mt-5 space-y-3">
             
             {recentRooms.length === 0 && (
-              <p className="rounded-lg border border-white/10 bg-[#252526] p-3 text-sm text-slate-400">
+                <p className="rounded-lg border border-[#3c3c3c] bg-[#252526] p-3 text-sm text-slate-400">
                 No recent rooms yet.
               </p>
             )}
@@ -99,10 +99,10 @@ const Home = () => {
                     state: { language: room.language }
                   })
                 }
-                className="group w-full rounded-xl border border-white/10 bg-[#252526] p-4 text-left transition hover:border-blue-400/60 hover:bg-[#2a2b2e]"
+                    className="group w-full rounded-xl border border-[#3c3c3c] bg-[#252526] p-4 text-left transition hover:border-[#007acc] hover:bg-[#2d2d2d]"
               >
                 {/* ROOM NAME */}
-                <p className="font-semibold text-blue-400 group-hover:text-blue-300">
+                    <p className="font-semibold text-[#cfe9ff] group-hover:text-white">
                   {room.roomName || "Untitled Room"}
                 </p>
 

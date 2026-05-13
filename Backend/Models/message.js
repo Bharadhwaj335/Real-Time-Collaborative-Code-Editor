@@ -47,4 +47,9 @@ const messageSchema = new Schema(
   }
 );
 
+// Add indexes for better query performance
+messageSchema.index({ roomId: 1, createdAt: -1 });
+messageSchema.index({ "user.id": 1 });
+messageSchema.index({ timestamp: -1 });
+
 export const MessageModel = model("Message", messageSchema);

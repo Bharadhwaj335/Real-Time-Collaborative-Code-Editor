@@ -60,11 +60,11 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#111318] text-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-[#1e1e1e] via-[#181818] to-[#111111] text-slate-100">
       <Navbar publicMode />
 
-      <div className="mx-auto flex w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-[#1e1e1e] shadow-2xl lg:mt-8">
-        <section className="hidden w-1/2 border-r border-white/10 bg-[linear-gradient(130deg,_#252526,_#0f172a)] p-8 lg:block">
+      <div className="mx-auto flex w-full max-w-4xl overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#252526] shadow-2xl lg:mt-8">
+        <section className="hidden w-1/2 border-r border-[#2a2a2a] bg-[linear-gradient(130deg,_#252526,_#1e1e1e)] p-8 lg:block">
           <h2 className="text-3xl font-bold text-white">Create your account</h2>
           <p className="mt-4 text-sm leading-relaxed text-slate-300">
             Join your classmates in live coding rooms with shared editor,
@@ -78,7 +78,7 @@ const Register = () => {
           </ul>
         </section>
 
-        <section className="w-full p-8 lg:w-1/2">
+        <section className="w-full bg-[#1e1e1e] p-8 lg:w-1/2">
           <h2 className="text-2xl font-semibold text-white">Register</h2>
           <p className="mt-2 text-sm text-slate-400">
             Start by creating your student profile.
@@ -93,7 +93,7 @@ const Register = () => {
                 placeholder="Full Name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-white/15 bg-[#252526] px-3 py-2.5 text-white outline-none transition focus:border-blue-400"
+                className="cc-input w-full rounded-lg px-3 py-2.5 text-white transition"
               />
             </label>
 
@@ -105,7 +105,7 @@ const Register = () => {
                 placeholder="Email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-white/15 bg-[#252526] px-3 py-2.5 text-white outline-none transition focus:border-blue-400"
+                className="cc-input w-full rounded-lg px-3 py-2.5 text-white transition"
               />
             </label>
 
@@ -117,7 +117,7 @@ const Register = () => {
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-white/15 bg-[#252526] px-3 py-2.5 text-white outline-none transition focus:border-blue-400"
+                className="cc-input w-full rounded-lg px-3 py-2.5 text-white transition"
               />
             </label>
 

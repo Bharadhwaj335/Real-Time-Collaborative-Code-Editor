@@ -267,9 +267,17 @@ const ChatBox = ({ roomId, user }) => {
   };
 
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-xl border border-[#334155] bg-[#0f172a]">
-      <header className="border-b border-[#334155] px-4 py-3">
-        <h3 className="text-sm font-semibold text-white">Room Chat</h3>
+    <section className="flex h-full min-h-0 flex-col rounded-xl border border-[#2a2a2a] bg-[#1e1e1e]">
+      <header className="border-b border-[#2a2a2a] bg-[#252526] px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Chat</h3>
+            <p className="text-xs text-slate-400">Messages stay in this room.</p>
+          </div>
+          <span className="rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-2 py-1 text-[11px] text-slate-400">
+            {messages.length} msgs
+          </span>
+        </div>
       </header>
 
       <div
@@ -280,7 +288,7 @@ const ChatBox = ({ roomId, user }) => {
         {loading && <Loader label="Loading chat..." />}
 
         {!loading && messages.length === 0 && (
-          <p className="rounded-lg border border-[#334155] bg-[#1e293b] p-3 text-sm text-slate-400">
+          <p className="rounded-lg border border-[#3c3c3c] bg-[#252526] p-3 text-sm text-slate-400">
             No messages yet. Start the conversation.
           </p>
         )}
@@ -295,9 +303,9 @@ const ChatBox = ({ roomId, user }) => {
           ))}
       </div>
 
-      <div className="sticky bottom-0 border-t border-[#334155] bg-[#0f172a] p-3">
+      <div className="border-t border-[#2a2a2a] bg-[#252526] p-3">
         {Object.keys(typingUsers).length > 0 && (
-          <p className="mb-2 rounded-md border border-[#334155] bg-[#111827] px-2 py-1 text-xs text-amber-200">
+          <p className="mb-2 rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-2 py-1 text-xs text-[#dcdcaa]">
             {Object.values(typingUsers).slice(0, 2).join(", ")}
             {Object.keys(typingUsers).length > 2 ? " and others" : ""}{" "}
             {Object.keys(typingUsers).length > 1 ? "are" : "is"} typing...
@@ -321,7 +329,7 @@ const ChatBox = ({ roomId, user }) => {
             }}
             placeholder="Type a message..."
             rows={2}
-            className="min-h-[54px] flex-1 resize-none rounded-lg border border-[#334155] bg-[#1e293b] px-3 py-2 text-sm text-white outline-none transition focus:border-[#3b82f6]"
+            className="min-h-[54px] flex-1 resize-none rounded-lg border border-[#3c3c3c] bg-[#1e1e1e] px-3 py-2 text-sm text-white outline-none transition focus:border-[#007acc]"
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();

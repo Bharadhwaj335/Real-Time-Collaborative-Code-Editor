@@ -30,13 +30,13 @@ const EditorToolbar = ({
       : "text-slate-300 border-[#334155] bg-[#0f172a]";
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#334155] bg-[#1e293b] px-4 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#2a2a2a] bg-[#252526] px-4 py-3">
       <div className="flex items-center gap-3">
-        <p className="rounded-md border border-[#334155] bg-[#0f172a] px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-slate-300">
+        <p className="rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-slate-300">
           Room {roomId}
         </p>
 
-        <p className="rounded-md border border-[#334155] bg-[#0f172a] px-2.5 py-1 text-xs font-semibold text-blue-200">
+        <p className="rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-2.5 py-1 text-xs font-semibold text-[#cfe9ff]">
           {activeFileName || "untitled"}
         </p>
 

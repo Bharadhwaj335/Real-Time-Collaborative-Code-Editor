@@ -84,11 +84,11 @@ const CreateRoom = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#111318] to-[#020617] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#1e1e1e] via-[#181818] to-[#111111] text-white">
       <Navbar userName={user?.name || "Student"} onLogout={handleLogout} />
 
       <div className="mx-auto w-full max-w-3xl px-4 py-10">
-        <div className="rounded-2xl border border-white/10 bg-[#1e1e1e]/80 backdrop-blur-md p-6 shadow-2xl sm:p-8 transition hover:shadow-blue-500/10">
+        <div className="cc-workbench rounded-2xl p-6 sm:p-8 transition hover:shadow-blue-500/10">
 
           <h2 className="text-2xl font-semibold tracking-wide">
             🚀 Start a session
@@ -107,7 +107,7 @@ const CreateRoom = () => {
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
                 placeholder="DSA Practice Group"
-                className="w-full rounded-lg border border-white/10 bg-[#252526] px-3 py-2.5 text-white outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
+                className="cc-input w-full rounded-lg px-3 py-2.5 text-white transition"
               />
             </label>
 
@@ -121,7 +121,7 @@ const CreateRoom = () => {
                 min="1"
                 value={maxParticipants}
                 onChange={(e) => setMaxParticipants(Number(e.target.value))}
-                className="w-full rounded-lg border border-white/10 bg-[#252526] px-3 py-2.5 text-white outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
+                className="cc-input w-full rounded-lg px-3 py-2.5 text-white transition"
               />
             </label>
 
@@ -150,10 +150,10 @@ const CreateRoom = () => {
                   <button
                     key={room.roomId}
                     onClick={() => openRecentRoom(room.roomId)}
-                    className="flex w-full justify-between rounded-lg border border-white/10 bg-[#252526] p-3 transition hover:border-blue-400/60 hover:bg-[#2a2b2e]"
+                    className="flex w-full justify-between rounded-lg border border-[#3c3c3c] bg-[#252526] p-3 transition hover:border-[#007acc] hover:bg-[#2d2d2d]"
                   >
                     <div className="text-left">
-                      <p className="font-semibold text-blue-400">
+                        <p className="font-semibold text-[#cfe9ff]">
                         {room.roomName || "Untitled Room"}
                       </p>
                       <p className="text-xs text-slate-400">

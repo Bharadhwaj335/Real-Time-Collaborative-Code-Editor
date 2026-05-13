@@ -69,13 +69,13 @@ const OutputConsole = ({
   }, [activeTab, errors, logs, stdout]);
 
   return (
-    <section className={`flex h-full min-h-0 flex-col rounded-xl border border-[#334155] bg-[#1e293b] ${className}`}>
-      <div className="flex items-center justify-between border-b border-[#334155] px-3 py-2">
+    <section className={`flex h-full min-h-0 flex-col rounded-xl border border-[#2a2a2a] bg-[#1e1e1e] ${className}`}>
+      <div className="flex items-center justify-between border-b border-[#2a2a2a] bg-[#252526] px-3 py-2">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab(tabKeys.output)}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-              activeTab === tabKeys.output ? "bg-[#3b82f6]/20 text-blue-200" : "text-slate-300 hover:bg-white/10"
+              activeTab === tabKeys.output ? "bg-[#007acc] text-white" : "text-slate-300 hover:bg-white/10"
             }`}
           >
             Output
@@ -84,7 +84,7 @@ const OutputConsole = ({
           <button
             onClick={() => setActiveTab(tabKeys.errors)}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-              activeTab === tabKeys.errors ? "bg-[#ef4444]/20 text-rose-200" : "text-slate-300 hover:bg-white/10"
+              activeTab === tabKeys.errors ? "bg-[#5a1d1d] text-[#ffb4b4]" : "text-slate-300 hover:bg-white/10"
             }`}
           >
             Errors
@@ -93,7 +93,7 @@ const OutputConsole = ({
           <button
             onClick={() => setActiveTab(tabKeys.logs)}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-              activeTab === tabKeys.logs ? "bg-[#f59e0b]/20 text-amber-200" : "text-slate-300 hover:bg-white/10"
+              activeTab === tabKeys.logs ? "bg-[#43311a] text-[#f5d08c]" : "text-slate-300 hover:bg-white/10"
             }`}
           >
             Logs
@@ -107,7 +107,7 @@ const OutputConsole = ({
 
           <button
             onClick={() => onClear?.()}
-            className="rounded-md border border-[#334155] px-2.5 py-1 text-xs text-slate-300 transition hover:border-[#3b82f6]/70 hover:text-blue-200"
+            className="rounded-md border border-[#3c3c3c] px-2.5 py-1 text-xs text-slate-300 transition hover:border-[#007acc] hover:text-[#cfe9ff]"
           >
             Clear
           </button>
@@ -116,7 +116,7 @@ const OutputConsole = ({
 
       <div
         ref={containerRef}
-        className="min-h-0 flex-1 overflow-y-auto bg-[#0b1120] px-3 py-3 font-mono text-xs"
+        className="min-h-0 flex-1 overflow-y-auto bg-[#1e1e1e] px-3 py-3 font-mono text-xs"
       >
         {activeTab === tabKeys.output && (
           <pre className="whitespace-pre-wrap break-words text-emerald-300">

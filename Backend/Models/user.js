@@ -37,4 +37,9 @@ userSchema.pre("validate", function setUsername() {
   }
 });
 
-export const UserModel = model("User",userSchema);
+// Add indexes for better query performance
+// Note: email index is already created via unique: true on the field
+userSchema.index({ username: 1 });
+userSchema.index({ createdAt: -1 });
+
+export const UserModel = model("User", userSchema);

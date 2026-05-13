@@ -51,14 +51,14 @@ const Navbar = ({
   };
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#334155] bg-[#1e293b] px-4 py-3 text-white sm:px-6">
+    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#2a2a2a] bg-[#252526] px-4 py-3 text-white sm:px-6">
       <div className="flex min-w-0 items-center gap-3">
-        <Link to="/home" className="text-xl font-bold tracking-tight text-[#3b82f6]">
-          CodeCollab
+        <Link to="/home" className="text-lg font-semibold tracking-wide text-[#cfe9ff]">
+          CodeCollab Studio
         </Link>
 
         {!publicMode && (
-          <nav className="hidden items-center gap-1 rounded-xl border border-[#334155] bg-[#0f172a] p-1 md:flex">
+          <nav className="hidden items-center gap-1 rounded-md border border-[#3c3c3c] bg-[#1e1e1e] p-1 md:flex">
             {navItems.map((item) => {
               const isActive = location.pathname === item.to;
 
@@ -66,9 +66,9 @@ const Navbar = ({
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
                     isActive
-                      ? "bg-[#3b82f6]/20 text-blue-200"
+                      ? "bg-[#007acc] text-white"
                       : "text-slate-200 hover:bg-white/10"
                   }`}
                 >
@@ -80,20 +80,20 @@ const Navbar = ({
         )}
 
         {roomId && isEditorPage && (
-          <div className="rounded-full border border-[#334155] bg-[#0f172a] px-3 py-1 text-xs uppercase tracking-wide text-slate-300">
+          <div className="rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-3 py-1 text-xs uppercase tracking-wide text-slate-300">
             Room {roomId}
           </div>
         )}
 
         {showConnection && isEditorPage && (
           <div
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${
-              isConnected ? "bg-emerald-500/10 text-emerald-300" : "bg-amber-500/10 text-amber-300"
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs ${
+              isConnected ? "bg-[#094771] text-[#cfe9ff]" : "bg-[#5c4522] text-[#ffd479]"
             }`}
           >
             <span
               className={`h-2 w-2 rounded-full ${
-                isConnected ? "bg-emerald-400" : "bg-amber-400"
+                isConnected ? "bg-[#4ec9b0]" : "bg-[#dcdcaa]"
               }`}
             />
             {isConnected ? "Live" : "Connecting"}
@@ -106,13 +106,13 @@ const Navbar = ({
           <>
             <Link
               to="/login"
-              className="rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-1.5 text-sm text-slate-200 transition hover:border-[#3b82f6]/50"
+              className="rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-3 py-1.5 text-sm text-slate-200 transition hover:border-[#007acc]"
             >
               Login
             </Link>
             <Link
               to="/register"
-              className="rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-1.5 text-sm text-slate-200 transition hover:border-[#3b82f6]/50"
+              className="rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-3 py-1.5 text-sm text-slate-200 transition hover:border-[#007acc]"
             >
               Register
             </Link>
@@ -120,8 +120,8 @@ const Navbar = ({
         ) : (
           <>
             {showUsers && isEditorPage && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#334155] bg-[#0f172a] px-3 py-1 text-xs text-slate-200">
-                <FaUsers className="text-[#3b82f6]" />
+              <span className="inline-flex items-center gap-1 rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-3 py-1 text-xs text-slate-200">
+                <FaUsers className="text-[#4ec9b0]" />
                 {connectedUsers} online
               </span>
             )}
@@ -129,7 +129,7 @@ const Navbar = ({
             <div ref={menuRef} className="relative">
               <button
                 onClick={() => setIsMenuOpen((prev) => !prev)}
-                className="inline-flex items-center gap-2 rounded-xl border border-[#334155] bg-[#0f172a] px-2 py-1.5 text-sm text-slate-200 transition hover:border-[#3b82f6]/50"
+                className="inline-flex items-center gap-2 rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-2 py-1.5 text-sm text-slate-200 transition hover:border-[#007acc]"
               >
                 <Avatar name={userLabel} size="sm" />
                 <span className="max-w-[130px] truncate text-xs font-medium">{userLabel}</span>
@@ -137,16 +137,16 @@ const Navbar = ({
               </button>
 
               {isMenuOpen && (
-                <div className="absolute right-0 z-40 mt-2 w-44 rounded-xl border border-[#334155] bg-[#0f172a] p-1 shadow-xl">
+                <div className="absolute right-0 z-40 mt-2 w-44 rounded-md border border-[#3c3c3c] bg-[#252526] p-1 shadow-xl">
                   <button
                     onClick={() => navigateTo("/profile")}
-                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10"
+                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10"
                   >
                     Profile
                   </button>
                   <button
                     onClick={() => navigateTo("/profile?tab=rooms")}
-                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10"
+                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10"
                   >
                     My Rooms
                   </button>
@@ -155,7 +155,7 @@ const Navbar = ({
                       setIsMenuOpen(false);
                       onLogout?.();
                     }}
-                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 transition hover:bg-rose-500/20"
+                      className="block w-full rounded-md px-3 py-2 text-left text-sm text-rose-200 transition hover:bg-rose-500/20"
                   >
                     Logout
                   </button>

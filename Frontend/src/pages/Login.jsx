@@ -68,13 +68,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#111318] text-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-[#1e1e1e] via-[#181818] to-[#111111] text-slate-100">
       <Navbar publicMode />
 
-      <div className="mx-auto flex w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1a1d25] shadow-2xl lg:mt-8 lg:flex-row">
-        <section className="flex flex-1 flex-col justify-between bg-[radial-gradient(circle_at_top,_#1d4ed8_0%,_#1e1e1e_60%)] p-8 lg:p-10">
+      <div className="mx-auto flex w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#252526] shadow-2xl lg:mt-8 lg:flex-row">
+        <section className="flex flex-1 flex-col justify-between bg-[radial-gradient(circle_at_top,_rgba(0,122,204,0.28)_0%,_#1e1e1e_60%)] p-8 lg:p-10">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-blue-200/90">
+            <p className="text-xs uppercase tracking-[0.3em] text-[#4ec9b0]">
               Real-Time Collaborative Editor
             </p>
             <h1 className="mt-4 text-3xl font-bold leading-tight text-white lg:text-4xl">
@@ -87,7 +87,7 @@ const Login = () => {
           </div>
         </section>
 
-        <section className="w-full bg-[#1e1e1e] p-8 lg:w-[420px] lg:p-10">
+        <section className="w-full border-l border-[#2a2a2a] bg-[#1e1e1e] p-8 lg:w-[420px] lg:p-10">
           <h2 className="text-2xl font-semibold text-white">Login</h2>
           <p className="mt-2 text-sm text-slate-400">
             Sign in to access your coding rooms.
@@ -102,7 +102,7 @@ const Login = () => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="you@example.com"
-                className="w-full rounded-lg border border-white/15 bg-[#252526] px-3 py-2.5 text-white outline-none transition focus:border-blue-400"
+                className="cc-input w-full rounded-lg px-3 py-2.5 text-white transition"
               />
             </label>
 
@@ -114,7 +114,7 @@ const Login = () => {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Enter password"
-                className="w-full rounded-lg border border-white/15 bg-[#252526] px-3 py-2.5 text-white outline-none transition focus:border-blue-400"
+                className="cc-input w-full rounded-lg px-3 py-2.5 text-white transition"
               />
             </label>
 

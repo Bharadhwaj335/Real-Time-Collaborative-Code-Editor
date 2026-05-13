@@ -8,7 +8,7 @@ const UserList = ({ users = [], currentUserId, maxParticipants }) => {
   });
 
   return (
-    <div className="rounded-xl border border-[#334155] bg-[#0f172a] p-4">
+    <div className="cc-panel rounded-xl p-4">
       <h3 className="text-sm font-semibold text-white">Active users ({users.length})</h3>
       <p className="mt-1 text-xs text-slate-400">
         Capacity: {users.length}/{maxParticipants || users.length}
@@ -23,10 +23,10 @@ const UserList = ({ users = [], currentUserId, maxParticipants }) => {
           {orderedUsers.map((user) => (
             <div
               key={user.id}
-              className={`flex items-center justify-between rounded-lg border px-3 py-2 ${
+                className={`flex items-center justify-between rounded-lg border px-3 py-2 ${
                 user.id === currentUserId
-                  ? "border-[#3b82f6]/60 bg-[#3b82f6]/15"
-                  : "border-[#334155] bg-[#1e293b]"
+                    ? "border-[#007acc] bg-[#007acc]/15"
+                    : "border-[#3c3c3c] bg-[#1e1e1e]"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -37,8 +37,8 @@ const UserList = ({ users = [], currentUserId, maxParticipants }) => {
                 </p>
               </div>
 
-              <span className="inline-flex items-center gap-1 text-xs text-emerald-300">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                <span className="inline-flex items-center gap-1 text-xs text-[#4ec9b0]">
+                  <span className="h-2 w-2 rounded-full bg-[#4ec9b0]" />
                 {user.status || "online"}
               </span>
             </div>
