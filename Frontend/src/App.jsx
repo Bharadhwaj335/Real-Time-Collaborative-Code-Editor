@@ -7,6 +7,7 @@ import CreateRoom from "./pages/CreateRoom";
 import JoinRoom from "./pages/JoinRoom";
 import EditorRoom from "./pages/EditorRoom";
 import Profile from "./pages/Profile";
+import MyRooms from "./pages/MyRooms";
 import { isAuthenticated } from "./utils/helpers";
 
 const ProtectedRoute = ({ children }) => {
@@ -54,6 +55,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Home />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/rooms"
+          element={
+            <ProtectedRoute>
+              <MyRooms />
             </ProtectedRoute>
           }
         />

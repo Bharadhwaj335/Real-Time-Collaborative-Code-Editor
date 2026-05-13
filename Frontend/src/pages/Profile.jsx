@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import Navbar from "../components/Common/Navbar";
 import Avatar from "../components/Common/Avatar";
 import Button from "../components/Common/Button";
 import Loader from "../components/Common/Loader";
+import RoomDashboard from "../components/Room/RoomDashboard";
 import { disconnectSocket } from "../services/socket";
-import { getCurrentUser, joinRoom, updateProfile } from "../services/api";
+import { getCurrentUser, updateProfile } from "../services/api";
 import {
   clearAuthStorage,
-  getRecentRooms,
   getStoredUser,
-  saveRecentRoom,
   setStoredUser
 } from "../utils/helpers";
 
@@ -29,11 +28,6 @@ const Profile = () => {
   const [editEmail, setEditEmail] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [recentRooms, setRecentRooms] = useState([]);
-
-  useEffect(() => {
-    setRecentRooms(getRecentRooms());
-  }, []);
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -153,22 +147,6 @@ const Profile = () => {
     setIsEditing(false);
   };
 
-  const openRecentRoom = async (roomId) => {
-    try {
-      const response = await joinRoom(roomId);
-      const language = response?.language || "javascript";
-      const roomName = response?.name || response?.roomName || `Room-${roomId.slice(0, 5)}`;
-      saveRecentRoom({ roomId, roomName, name: roomName, language });
-      navigate(`/room/${roomId}`, { state: { language } });
-    } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        "Unable to open this room.";
-      toast.error(message);
-    }
-  };
-
   return (
     <div className="cc-page-shell">
       <Navbar userName={displayName} onLogout={handleLogout} />
@@ -260,32 +238,16 @@ const Profile = () => {
                 </div>
               </div>
             ) : (
-              <div className="mt-5 space-y-2">
-                {recentRooms.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-[#3c3c3c] bg-[#1e1e1e]/60 px-3 py-6 text-center text-[13px] text-slate-500">
-                    No recent rooms yet.
-                  </p>
-                ) : (
-                  recentRooms.map((room) => (
-                    <button
-                      key={room.roomId}
-                      type="button"
-                      onClick={() => openRecentRoom(room.roomId)}
-                      className="flex w-full items-center justify-between gap-3 rounded-xl border border-[#2a2a2a] bg-[#1e1e1e] px-3 py-2.5 text-left transition hover:border-[#0a7ab8]/35 hover:bg-[#252526]"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-[13px] font-semibold text-white">
-                          {room.roomName || room.name || "Untitled Room"}
-                        </p>
-                        <p className="mt-0.5 font-mono text-[10px] text-slate-500">ID · {room.roomId}</p>
-                        <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                          {room.language}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-[11px] font-semibold text-[#5cb3e8]">Open</span>
-                    </button>
-                  ))
-                )}
+              <div className="mt-5 space-y-3">
+                <RoomDashboard embedded />
+                <div className="text-center">
+                  <Link
+                    to="/rooms"
+                    className="text-[12px] font-semibold text-[#5cb3e8] transition hover:text-[#cfe9ff]"
+                  >
+                    Open full room manager →
+                  </Link>
+                </div>
               </div>
             )}
           </div>

@@ -38,3 +38,24 @@ export const authMiddleware = (req, res, next) => {
     });
   }
 };
+
+/** Attaches `req.user` when a valid Bearer token is present; never sends 401. */
+export const optionalAuth = (req, res, next) => {
+  try {
+    const token = extractToken(req.headers.authorization);
+    if (!token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, env.jwtSecret);
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      name: decoded.name,
+    };
+  } catch {
+    // Ignore invalid tokens for optional auth flows.
+  }
+
+  next();
+};

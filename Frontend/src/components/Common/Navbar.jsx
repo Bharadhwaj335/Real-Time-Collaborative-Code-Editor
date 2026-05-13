@@ -5,8 +5,9 @@ import Avatar from "./Avatar";
 
 const navItems = [
   { label: "Home", to: "/home" },
-  { label: "Create Room", to: "/create-room" },
-  { label: "Join Room", to: "/join-room" }
+  { label: "My rooms", to: "/rooms" },
+  { label: "Create", to: "/create-room" },
+  { label: "Join", to: "/join-room" }
 ];
 
 const Navbar = ({

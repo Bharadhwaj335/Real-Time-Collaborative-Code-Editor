@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
 	TOKEN: "cc_token",
 	USER: "cc_user",
 	RECENT_ROOMS: "cc_recent_rooms",
+	STARRED_ROOMS: "cc_starred_rooms",
 	GUEST_IDENTITY: "cc_guest_identity"
 };
 
@@ -57,7 +58,8 @@ export const SOCKET_EVENTS = {
 	USER_TYPING: "USER_TYPING",
 	USER_JOINED: "USER_JOINED",
 	USER_LEFT: "USER_LEFT",
-	ROOM_USERS: "ROOM_USERS"
+	ROOM_USERS: "ROOM_USERS",
+	ROOM_DELETED: "ROOM_DELETED"
 };
 
 export const DEFAULT_EDITOR_CODE = `// Welcome to the collaborative editor\n// Start coding with your teammates in real time.\n\nfunction greet(name) {\n  return \`Hello, \${name}!\`;\n}\n\nconsole.log(greet("Team"));\n`;

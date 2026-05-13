@@ -5,6 +5,7 @@ import { FaPlus, FaRegEdit, FaRegFileCode, FaTrash, FaUsers } from "react-icons/
 
 import Modal from "../components/Common/Modal";
 import Navbar from "../components/Common/Navbar";
+import RoomSettingsModal from "../components/Room/RoomSettingsModal";
 import CodeEditor from "../components/Editor/CodeEditor";
 import EditorToolbar from "../components/Editor/EditorToolbar";
 import OutputConsole from "../components/Editor/OutputConsole";
@@ -25,7 +26,9 @@ import {
   buildRoomInviteLink,
   clearAuthStorage,
   getOrCreateGuestIdentity,
-  getStoredUser
+  getStoredUser,
+  removeRecentRoom,
+  removeStarredRoom
 } from "../utils/helpers";
 import { SOCKET_EVENTS } from "../utils/constants";
 
@@ -120,6 +123,7 @@ const EditorRoom = () => {
   const [renameModal, setRenameModal] = useState({ isOpen: false, fileName: "", newName: "" });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, fileName: "" });
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const [roomSettingsOpen, setRoomSettingsOpen] = useState(false);
   const [leftPanelWidth, setLeftPanelWidth] = useState(220);
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [roomPanelHeight, setRoomPanelHeight] = useState(140);
@@ -144,6 +148,12 @@ const EditorRoom = () => {
       : [{ id: user.id, name: user.name, status: "online" }];
   }, [user.id, user.name, users]);
   const inviteLink = useMemo(() => buildRoomInviteLink(roomId), [roomId]);
+
+  const isRoomOwner = useMemo(() => {
+    const owner = roomDetails?.createdBy;
+    if (owner == null || owner === "") return false;
+    return String(owner) === String(user.id);
+  }, [roomDetails?.createdBy, user.id]);
 
   const addConsoleLog = useCallback((level, message) => {
     setConsoleLogs((prev) => {
@@ -369,12 +379,26 @@ const EditorRoom = () => {
       }));
     };
 
+    const handleRoomDeleted = (payload) => {
+      if (!payload?.roomId || payload.roomId !== roomId) {
+        return;
+      }
+
+      toast.error("This room was deleted by the owner.");
+      removeRecentRoom(roomId);
+      removeStarredRoom(roomId);
+      socket.emit(SOCKET_EVENTS.LEAVE_ROOM, { roomId, userId: user.id });
+      navigate("/rooms", { replace: true });
+    };
+
     socket.on(SOCKET_EVENTS.ROOM_STATE, handleRoomState);
+    socket.on(SOCKET_EVENTS.ROOM_DELETED, handleRoomDeleted);
 
     return () => {
       socket.off(SOCKET_EVENTS.ROOM_STATE, handleRoomState);
+      socket.off(SOCKET_EVENTS.ROOM_DELETED, handleRoomDeleted);
     };
-  }, [roomId, socket]);
+  }, [navigate, roomId, socket, user.id]);
 
   useEffect(() => {
     const handleUserJoined = (payload) => {
@@ -741,6 +765,8 @@ const EditorRoom = () => {
               onCopyLink={copyInviteLink}
               isRunning={isRunning}
               executionStatus={executionStatus}
+              isRoomOwner={isRoomOwner}
+              onRoomSettings={isRoomOwner ? () => setRoomSettingsOpen(true) : undefined}
             />
 
             <div className="flex items-center gap-1.5 overflow-x-auto border-b border-[#2a2a2a] bg-[#252526] px-2 py-1.5">
@@ -984,6 +1010,34 @@ const EditorRoom = () => {
           </div>
         </div>
       </Modal>
+
+      <RoomSettingsModal
+        isOpen={roomSettingsOpen}
+        onClose={() => setRoomSettingsOpen(false)}
+        roomId={roomId}
+        roomName={roomDetails?.name || roomDetails?.roomName || ""}
+        maxParticipants={roomDetails?.maxParticipants ?? maxParticipants}
+        visibility={roomDetails?.visibility || "private"}
+        onUpdated={async () => {
+          try {
+            const response = await joinRoom(roomId);
+            setRoomDetails({
+              ...response,
+              roomId: response?.roomId || roomId,
+              name: response?.name || response?.roomName || "",
+              roomName: response?.roomName || response?.name || ""
+            });
+          } catch {
+            /* ignore */
+          }
+        }}
+        onDeleted={() => {
+          removeRecentRoom(roomId);
+          removeStarredRoom(roomId);
+          socket.emit(SOCKET_EVENTS.LEAVE_ROOM, { roomId, userId: user.id });
+          navigate("/rooms", { replace: true });
+        }}
+      />
     </div>
   );
 };

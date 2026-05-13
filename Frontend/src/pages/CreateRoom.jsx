@@ -28,8 +28,8 @@ const CreateRoom = () => {
   }, []);
 
   const handleCreateRoom = async () => {
-    if (maxParticipants < 1) {
-      return toast.error("Participants must be at least 1");
+    if (maxParticipants < 2) {
+      return toast.error("Participants must be at least 2.");
     }
 
     setLoading(true);
@@ -115,7 +115,7 @@ const CreateRoom = () => {
               <span className="mb-2 block font-medium text-slate-300">Max participants ({maxParticipants})</span>
               <input
                 type="number"
-                min="1"
+                min="2"
                 value={maxParticipants}
                 onChange={(e) => setMaxParticipants(Number(e.target.value))}
                 className="cc-input w-full rounded-xl px-3.5 py-3 text-white transition"

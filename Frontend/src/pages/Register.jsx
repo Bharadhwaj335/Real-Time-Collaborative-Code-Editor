@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import AuthHeroPanel from "../components/Auth/AuthHeroPanel";
 import Button from "../components/Common/Button";
 import Navbar from "../components/Common/Navbar";
 import { registerUser } from "../services/api";
@@ -60,38 +61,22 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1e1e1e] via-[#181818] to-[#111111] text-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f0f10] via-[#141416] to-[#0a0a0b] text-slate-100">
       <Navbar publicMode />
 
-      <div className="flex min-h-[calc(100vh-2.75rem)] items-center justify-center px-4 py-8 sm:py-10">
-        <div className="mx-auto flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#252526] shadow-[0_16px_48px_rgba(0,0,0,0.45)] lg:flex-row">
-          <section className="hidden w-full max-w-[52%] border-r border-[#2a2a2a] bg-[linear-gradient(160deg,#252526_0%,#1c1c1c_55%,#1e1e1e_100%)] p-8 lg:block lg:p-9">
-            <h2 className="text-2xl font-bold tracking-tight text-white">Create your account</h2>
-            <p className="mt-3 text-[13px] leading-relaxed text-slate-400">
-              Join live coding rooms with a shared editor, built-in chat, and instant output.
-            </p>
+      <div className="mx-auto flex min-h-[calc(100vh-2.75rem)] w-full max-w-6xl flex-col px-4 py-6 sm:px-6 sm:py-8 lg:flex-row lg:items-stretch lg:gap-6 lg:py-10">
+        <div className="relative order-1 flex-1 overflow-hidden rounded-2xl border border-white/[0.06] shadow-[0_24px_80px_rgba(0,0,0,0.45)] lg:order-none lg:min-h-[520px]">
+          <AuthHeroPanel
+            subtitle="Create your profile and join live rooms with shared editing, chat, and instant program output."
+          />
+        </div>
 
-            <ul className="mt-7 space-y-2.5 text-[13px] text-slate-400">
-              <li className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3db39c]" />
-                Live code sync and cursor updates
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0a7ab8]" />
-                Room-based collaboration
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#569cd6]" />
-                Language switching and code execution
-              </li>
-            </ul>
-          </section>
+        <div className="order-2 mt-6 flex w-full shrink-0 flex-col justify-center lg:mt-0 lg:w-[400px] xl:w-[420px]">
+          <div className="rounded-2xl border border-white/[0.08] bg-[#1a1a1c]/85 p-6 shadow-[0_16px_48px_rgba(0,0,0,0.4)] backdrop-blur-xl sm:p-7">
+            <h2 className="text-xl font-semibold tracking-tight text-white">Create account</h2>
+            <p className="mt-1.5 text-[13px] text-slate-500">Start collaborating in minutes.</p>
 
-          <section className="w-full bg-[#1e1e1e] p-7 sm:p-9 lg:w-[min(380px,48%)] lg:py-10">
-            <h2 className="text-xl font-semibold tracking-tight text-white">Register</h2>
-            <p className="mt-1.5 text-[13px] text-slate-500">Create your student profile to get started.</p>
-
-            <form onSubmit={handleRegister} className="mt-7 space-y-4">
+            <form onSubmit={handleRegister} className="mt-6 space-y-4">
               <label className="block text-sm">
                 <span className="mb-1.5 block text-xs font-medium text-slate-400">Name</span>
                 <input
@@ -101,7 +86,7 @@ const Register = () => {
                   value={formData.name}
                   onChange={handleChange}
                   autoComplete="name"
-                  className="cc-input w-full rounded-lg px-3 py-2 text-[13px] text-white transition"
+                  className="cc-input w-full rounded-lg px-3 py-2.5 text-[13px] text-white transition"
                 />
               </label>
 
@@ -114,7 +99,7 @@ const Register = () => {
                   value={formData.email}
                   onChange={handleChange}
                   autoComplete="email"
-                  className="cc-input w-full rounded-lg px-3 py-2 text-[13px] text-white transition"
+                  className="cc-input w-full rounded-lg px-3 py-2.5 text-[13px] text-white transition"
                 />
               </label>
 
@@ -123,11 +108,11 @@ const Register = () => {
                 <input
                   type="password"
                   name="password"
-                  placeholder="At least 8 characters"
+                  placeholder="At least 6 characters"
                   value={formData.password}
                   onChange={handleChange}
                   autoComplete="new-password"
-                  className="cc-input w-full rounded-lg px-3 py-2 text-[13px] text-white transition"
+                  className="cc-input w-full rounded-lg px-3 py-2.5 text-[13px] text-white transition"
                 />
               </label>
 
@@ -136,18 +121,18 @@ const Register = () => {
               </Button>
             </form>
 
-            <p className="mt-4 text-center text-[13px] text-slate-500 lg:hidden">
-              Already have an account? <Link to="/login" className="cc-link">Login</Link>
+            <p className="mt-4 text-center text-[13px] text-slate-500">
+              Already have an account? <Link to="/login" className="cc-link">Sign in</Link>
             </p>
 
             <button
               type="button"
               onClick={() => navigate("/login")}
-              className="mt-3 w-full rounded-xl border border-[#3c3c3c] py-2 text-[13px] font-medium text-slate-300 transition hover:border-[#0a7ab8]/45 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a7ab8]/40"
+              className="mt-3 w-full rounded-xl border border-[#3c3c3c] py-2 text-[13px] font-medium text-slate-300 transition hover:border-[#0a7ab8]/45 hover:bg-white/[0.04]"
             >
-              Back to Login
+              Back to login
             </button>
-          </section>
+          </div>
         </div>
       </div>
     </div>

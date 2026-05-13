@@ -1,5 +1,7 @@
 import { RoomModel } from "../Models/room.js";
+import { MessageModel } from "../Models/message.js";
 import { generateRoomId } from "../utils/generateRoomId.js";
+import { getSocketIo } from "../socket/ioInstance.js";
 import { getExtensionFromLanguage, normalizeLanguage } from "../utils/language.js";
 
 const normalizeRoomId = (value = "") => value.trim().toUpperCase();
@@ -67,7 +69,10 @@ export const createRoom = async (req, res, next) => {
       ? normalizeRoomId(req.body.roomId)
       : await generateUniqueRoomId();
 
-    const creatorId = req.user?.id || req.body?.user?.id || `guest-${Date.now()}`;
+    const creatorId =
+      req.user?.id != null && req.user.id !== ""
+        ? String(req.user.id)
+        : req.body?.user?.id || `guest-${Date.now()}`;
     const creatorName = req.user?.name || req.body?.user?.name || "Host";
 
     const room = await RoomModel.create({
@@ -158,6 +163,156 @@ export const leaveRoom = async (req, res, next) => {
       success: true,
       message: "User left the room",
       room,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const listMyRooms = async (req, res, next) => {
+  try {
+    const ownerId = String(req.user?.id || "");
+
+    if (!ownerId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const rooms = await RoomModel.find({ createdBy: ownerId }).sort({ updatedAt: -1 }).lean();
+
+    const payload = rooms.map((room) => {
+      const roomName = room.name || room.roomName || "";
+      const currentParticipants = Array.isArray(room.users) ? room.users.length : 0;
+      const maxParticipants = Number(room.maxParticipants) || DEFAULT_MAX_PARTICIPANTS;
+
+      return {
+        roomId: room.roomId,
+        name: roomName,
+        roomName,
+        language: room.currentLanguage || room.language || "javascript",
+        maxParticipants,
+        currentParticipants,
+        visibility: room.visibility || "private",
+        updatedAt: room.updatedAt,
+        createdAt: room.createdAt,
+        createdBy: room.createdBy,
+        isJoinable: currentParticipants < maxParticipants,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      rooms: payload,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const updateRoom = async (req, res, next) => {
+  try {
+    const roomId = normalizeRoomId(req.params.roomId);
+    const userId = String(req.user?.id || "");
+
+    const room = await RoomModel.findOne({ roomId });
+
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        message: "Room not found",
+      });
+    }
+
+    if (String(room.createdBy || "") !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the room owner can update this room.",
+      });
+    }
+
+    const { name, roomName, maxParticipants, visibility } = req.body || {};
+    const nextTitle = typeof name === "string" ? name.trim() : typeof roomName === "string" ? roomName.trim() : "";
+
+    if (nextTitle) {
+      room.name = nextTitle;
+      room.roomName = nextTitle;
+    }
+
+    if (maxParticipants !== undefined && maxParticipants !== null) {
+      room.maxParticipants = clampParticipantLimit(maxParticipants);
+    }
+
+    if (visibility !== undefined && visibility !== null) {
+      room.visibility = visibility === "public" ? "public" : "private";
+    }
+
+    await room.save();
+
+    const roomObject = room.toObject();
+    const normalizedUsers = normalizeRoomUsers(roomObject.users);
+    const currentParticipants = normalizedUsers.length;
+    const maxP = Number(roomObject.maxParticipants) || DEFAULT_MAX_PARTICIPANTS;
+
+    const io = getSocketIo();
+    io?.to(roomId).emit("ROOM_STATE", {
+      roomId,
+      name: roomObject.name || roomObject.roomName || "",
+      roomName: roomObject.roomName || roomObject.name || "",
+      maxParticipants: maxP,
+      visibility: roomObject.visibility,
+      currentParticipants,
+      users: normalizedUsers,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Room updated",
+      data: {
+        ...roomObject,
+        users: normalizedUsers,
+        currentParticipants,
+        maxParticipants: maxP,
+        isJoinable: currentParticipants < maxP,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const deleteRoom = async (req, res, next) => {
+  try {
+    const roomId = normalizeRoomId(req.params.roomId);
+    const userId = String(req.user?.id || "");
+
+    const room = await RoomModel.findOne({ roomId });
+
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        message: "Room not found",
+      });
+    }
+
+    if (String(room.createdBy || "") !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the room owner can delete this room.",
+      });
+    }
+
+    await MessageModel.deleteMany({ roomId });
+    await RoomModel.deleteOne({ roomId });
+
+    const io = getSocketIo();
+    io?.to(roomId).emit("ROOM_DELETED", { roomId });
+
+    return res.status(200).json({
+      success: true,
+      message: "Room deleted",
+      roomId,
     });
   } catch (error) {
     return next(error);

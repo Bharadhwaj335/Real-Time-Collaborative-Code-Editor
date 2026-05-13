@@ -113,6 +113,21 @@ export const joinRoom = async (roomId) => {
   return response.data;
 };
 
+export const getMyRooms = async () => {
+  const response = await api.get("/rooms/mine");
+  return response.data;
+};
+
+export const updateRoomApi = async (roomId, payload = {}) => {
+  const response = await api.patch(`/rooms/${roomId}`, payload);
+  return response.data;
+};
+
+export const deleteRoomApi = async (roomId) => {
+  const response = await api.delete(`/rooms/${roomId}`);
+  return response.data;
+};
+
 export const getCurrentUser = async () => {
   const response = await api.get("/users/me");
   return response.data;

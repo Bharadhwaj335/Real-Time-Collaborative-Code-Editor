@@ -8,6 +8,7 @@ import { registerRoomSocket } from "./room.socket.js";
 import { registerCodeSyncSocket } from "./codeSync.socket.js";
 import { registerCursorSocket } from "./cursor.socket.js";
 import { registerChatSocket } from "./chat.socket.js";
+import { setSocketIo } from "./ioInstance.js";
 
 const authenticateSocket = (socket, next) => {
   const token = socket.handshake.auth?.token;
@@ -34,6 +35,8 @@ export const initializeSocket = (httpServer) => {
   });
 
   io.use(authenticateSocket);
+
+  setSocketIo(io);
 
   io.on("connection", (socket) => {
     logger.info(`Socket connected: ${socket.id}`);

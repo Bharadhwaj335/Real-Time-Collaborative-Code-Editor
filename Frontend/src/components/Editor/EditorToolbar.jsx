@@ -1,4 +1,4 @@
-import { FaLink, FaPlay } from "react-icons/fa";
+import { FaCog, FaLink, FaPlay } from "react-icons/fa";
 import Button from "../Common/Button";
 import LanguageSelector from "./LanguageSelector";
 
@@ -10,7 +10,9 @@ const EditorToolbar = ({
   onRunCode,
   onCopyLink,
   isRunning,
-  executionStatus = "idle"
+  executionStatus = "idle",
+  isRoomOwner = false,
+  onRoomSettings
 }) => {
   const statusLabel =
     executionStatus === "running"
@@ -63,6 +65,17 @@ const EditorToolbar = ({
           <FaLink className="h-3 w-3 opacity-80" aria-hidden />
           Invite
         </Button>
+
+        {isRoomOwner && typeof onRoomSettings === "function" ? (
+          <button
+            type="button"
+            onClick={onRoomSettings}
+            title="Room settings"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[#3c3c3c] bg-[#1e1e1e] text-slate-400 transition hover:border-[#0a7ab8]/45 hover:text-[#cfe9ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a7ab8]/35"
+          >
+            <FaCog className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        ) : null}
 
         <Button
           onClick={onRunCode}

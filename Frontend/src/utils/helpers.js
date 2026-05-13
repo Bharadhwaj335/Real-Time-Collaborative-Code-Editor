@@ -127,6 +127,52 @@ export const getRecentRooms = () => {
 	return [];
 };
 
+export const removeRecentRoom = (roomId) => {
+	if (!roomId) return;
+
+	const list = getRecentRooms().filter(
+		(item) => String(item.roomId).toUpperCase() !== String(roomId).toUpperCase()
+	);
+
+	safeStorageSet(STORAGE_KEYS.RECENT_ROOMS, JSON.stringify(list));
+};
+
+export const getStarredRoomIds = () => {
+	const value = safeStorageGet(STORAGE_KEYS.STARRED_ROOMS);
+	const parsed = safeJsonParse(value, []);
+
+	return Array.isArray(parsed) ? parsed.map((id) => String(id).toUpperCase()) : [];
+};
+
+export const isRoomStarred = (roomId) => {
+	if (!roomId) return false;
+	const key = String(roomId).toUpperCase();
+	return getStarredRoomIds().includes(key);
+};
+
+export const toggleStarredRoom = (roomId) => {
+	if (!roomId) return false;
+
+	const key = String(roomId).toUpperCase();
+	const current = new Set(getStarredRoomIds());
+
+	if (current.has(key)) {
+		current.delete(key);
+	} else {
+		current.add(key);
+	}
+
+	safeStorageSet(STORAGE_KEYS.STARRED_ROOMS, JSON.stringify(Array.from(current)));
+	return current.has(key);
+};
+
+export const removeStarredRoom = (roomId) => {
+	if (!roomId) return;
+	const key = String(roomId).toUpperCase();
+	const next = getStarredRoomIds().filter((id) => id !== key);
+	safeStorageSet(STORAGE_KEYS.STARRED_ROOMS, JSON.stringify(next));
+};
+
 export const saveRecentRoom = (room) => {
 	if (!room?.roomId) return;
 
