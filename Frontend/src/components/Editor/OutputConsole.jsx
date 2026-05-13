@@ -39,7 +39,8 @@ const OutputConsole = ({
   runtimeError = "",
   logs = [],
   executionStatus = "idle",
-  onClear
+  onClear,
+  className = ""
 }) => {
   const [activeTab, setActiveTab] = useState(tabKeys.output);
   const containerRef = useRef(null);
@@ -68,7 +69,7 @@ const OutputConsole = ({
   }, [activeTab, errors, logs, stdout]);
 
   return (
-    <section className="mt-3 rounded-xl border border-[#334155] bg-[#1e293b]">
+    <section className={`flex h-full min-h-0 flex-col rounded-xl border border-[#334155] bg-[#1e293b] ${className}`}>
       <div className="flex items-center justify-between border-b border-[#334155] px-3 py-2">
         <div className="flex items-center gap-2">
           <button
@@ -115,7 +116,7 @@ const OutputConsole = ({
 
       <div
         ref={containerRef}
-        className="max-h-52 min-h-[170px] overflow-y-auto bg-[#0b1120] px-3 py-3 font-mono text-xs"
+        className="min-h-0 flex-1 overflow-y-auto bg-[#0b1120] px-3 py-3 font-mono text-xs"
       >
         {activeTab === tabKeys.output && (
           <pre className="whitespace-pre-wrap break-words text-emerald-300">

@@ -120,11 +120,22 @@ const EditorRoom = () => {
   const [renameModal, setRenameModal] = useState({ isOpen: false, fileName: "", newName: "" });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, fileName: "" });
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(240);
+  const [rightPanelWidth, setRightPanelWidth] = useState(380);
+  const [roomPanelHeight, setRoomPanelHeight] = useState(210);
+  const [outputPanelHeight, setOutputPanelHeight] = useState(240);
 
   const lastActivityIdRef = useRef("");
   const hasLoadedCodeSnapshotRef = useRef(false);
   const lastSavedSnapshotRef = useRef("");
   const hydrateFromSnapshotRef = useRef(hydrateFilesFromSnapshot);
+  const activeResizeTypeRef = useRef("");
+  const resizeStartXRef = useRef(0);
+  const resizeStartYRef = useRef(0);
+  const resizeStartLeftWidthRef = useRef(240);
+  const resizeStartRightWidthRef = useRef(380);
+  const resizeStartRoomHeightRef = useRef(210);
+  const resizeStartOutputHeightRef = useRef(240);
   const isRunning = executionStatus === "running";
 
   const roomUsers = useMemo(() => {
@@ -149,6 +160,71 @@ const EditorRoom = () => {
       return next.slice(-200);
     });
   }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      if (!activeResizeTypeRef.current) {
+        return;
+      }
+
+      if (activeResizeTypeRef.current === "left") {
+        const deltaX = event.clientX - resizeStartXRef.current;
+        const nextWidth = Math.max(180, Math.min(420, resizeStartLeftWidthRef.current + deltaX));
+        setLeftPanelWidth(nextWidth);
+        return;
+      }
+
+      if (activeResizeTypeRef.current === "right") {
+        const deltaX = event.clientX - resizeStartXRef.current;
+        const nextWidth = Math.max(300, Math.min(560, resizeStartRightWidthRef.current - deltaX));
+        setRightPanelWidth(nextWidth);
+        return;
+      }
+
+      if (activeResizeTypeRef.current === "room-chat") {
+        const deltaY = event.clientY - resizeStartYRef.current;
+        const nextHeight = Math.max(150, Math.min(420, resizeStartRoomHeightRef.current + deltaY));
+        setRoomPanelHeight(nextHeight);
+        return;
+      }
+
+      if (activeResizeTypeRef.current === "output") {
+        const deltaY = event.clientY - resizeStartYRef.current;
+        const nextHeight = Math.max(160, Math.min(420, resizeStartOutputHeightRef.current - deltaY));
+        setOutputPanelHeight(nextHeight);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (!activeResizeTypeRef.current) {
+        return;
+      }
+
+      activeResizeTypeRef.current = "";
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  const startPaneResize = (type, event) => {
+    activeResizeTypeRef.current = type;
+    resizeStartXRef.current = event.clientX;
+    resizeStartYRef.current = event.clientY;
+    resizeStartLeftWidthRef.current = leftPanelWidth;
+    resizeStartRightWidthRef.current = rightPanelWidth;
+    resizeStartRoomHeightRef.current = roomPanelHeight;
+    resizeStartOutputHeightRef.current = outputPanelHeight;
+    document.body.style.cursor = type === "left" || type === "right" ? "col-resize" : "row-resize";
+    document.body.style.userSelect = "none";
+  };
 
   useEffect(() => {
     hydrateFromSnapshotRef.current = hydrateFilesFromSnapshot;
@@ -558,8 +634,8 @@ const EditorRoom = () => {
         onLogout={handleLogout}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
-        <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[56px_240px_minmax(0,1fr)_360px] xl:grid-cols-[56px_240px_minmax(0,1fr)_380px]">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
+        <div className="flex min-h-0 flex-1 gap-3">
           <aside className="flex min-h-0 flex-col items-center gap-2 rounded-xl border border-[#334155] bg-[#1e293b] p-2">
             {sidebarItems.map((item) => (
               <button
@@ -577,7 +653,10 @@ const EditorRoom = () => {
             ))}
           </aside>
 
-          <aside className="min-h-0 overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b]">
+          <aside
+            className="min-h-0 shrink-0 overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b]"
+            style={{ width: `${leftPanelWidth}px` }}
+          >
             {sidebarMode === "files" ? (
               <div className="flex h-full min-h-0 flex-col">
                 <div className="flex items-center justify-between border-b border-[#334155] px-3 py-2">
@@ -639,7 +718,16 @@ const EditorRoom = () => {
             )}
           </aside>
 
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b]">
+          <button
+            type="button"
+            onMouseDown={(event) => startPaneResize("left", event)}
+            className="group hidden w-2 shrink-0 cursor-col-resize items-center justify-center rounded-md lg:flex"
+            title="Drag to resize explorer"
+          >
+            <span className="h-14 w-1 rounded-full bg-[#334155] transition group-hover:bg-[#3b82f6]/70" />
+          </button>
+
+          <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b]">
             <EditorToolbar
               roomId={roomId}
               language={language}
@@ -697,31 +785,63 @@ const EditorRoom = () => {
             </div>
           </section>
 
-          <aside className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b] p-3">
-            <RoomHeader
-              roomName={roomDisplayName}
-              roomId={roomId}
-              language={language}
-              isConnected={isConnected}
-              maxParticipants={maxParticipants || roomUsers.length}
-              currentParticipants={currentParticipants || roomUsers.length}
-              onLeaveRoom={() => setLeaveModalOpen(true)}
-            />
+          <button
+            type="button"
+            onMouseDown={(event) => startPaneResize("right", event)}
+            className="group hidden w-2 shrink-0 cursor-col-resize items-center justify-center rounded-md lg:flex"
+            title="Drag to resize right panel"
+          >
+            <span className="h-14 w-1 rounded-full bg-[#334155] transition group-hover:bg-[#3b82f6]/70" />
+          </button>
 
-            <div className="min-h-0 flex-1 overflow-hidden">
+          <aside
+            className="flex min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-xl border border-[#334155] bg-[#1e293b] p-3 lg:w-auto"
+            style={{ width: `${rightPanelWidth}px` }}
+          >
+            <div className="shrink-0 overflow-hidden" style={{ height: `${roomPanelHeight}px` }}>
+              <RoomHeader
+                roomName={roomDisplayName}
+                roomId={roomId}
+                maxParticipants={maxParticipants || roomUsers.length}
+                currentParticipants={currentParticipants || roomUsers.length}
+                onLeaveRoom={() => setLeaveModalOpen(true)}
+              />
+            </div>
+
+            <button
+              type="button"
+              onMouseDown={(event) => startPaneResize("room-chat", event)}
+              className="group my-2 flex h-3 shrink-0 cursor-row-resize items-center justify-center rounded-md"
+              title="Drag to resize room panel"
+            >
+              <span className="h-1 w-14 rounded-full bg-[#334155] transition group-hover:bg-[#3b82f6]/70" />
+            </button>
+
+            <div className="min-h-[180px] flex-1 overflow-hidden">
               <ChatBox roomId={roomId} user={user} />
             </div>
           </aside>
         </div>
 
-        <OutputConsole
-          stdout={output.stdout}
-          stderr={output.stderr}
-          runtimeError={output.error}
-          logs={consoleLogs}
-          executionStatus={executionStatus}
-          onClear={clearConsole}
-        />
+        <button
+          type="button"
+          onMouseDown={(event) => startPaneResize("output", event)}
+          className="group flex h-3 shrink-0 cursor-row-resize items-center justify-center rounded-md"
+          title="Drag to resize output panel"
+        >
+          <span className="h-1 w-16 rounded-full bg-[#334155] transition group-hover:bg-[#3b82f6]/70" />
+        </button>
+
+        <div className="shrink-0 overflow-hidden" style={{ height: `${outputPanelHeight}px` }}>
+          <OutputConsole
+            stdout={output.stdout}
+            stderr={output.stderr}
+            runtimeError={output.error}
+            logs={consoleLogs}
+            executionStatus={executionStatus}
+            onClear={clearConsole}
+          />
+        </div>
       </div>
 
       <Modal
