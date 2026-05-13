@@ -4,8 +4,8 @@ import { formatMessageTime } from "../../utils/helpers";
 const MessageItem = ({ message, isOwnMessage }) => {
   if (message?.isSystem) {
     return (
-      <div className="flex justify-center">
-        <p className="rounded-md border border-[#3c3c3c] bg-[#252526] px-2.5 py-1 text-[11px] text-slate-300">
+      <div className="flex justify-center py-0.5">
+        <p className="max-w-[95%] rounded-lg border border-[#3c3c3c]/80 bg-[#252526]/90 px-2.5 py-1 text-center text-[11px] leading-snug text-slate-400">
           {message?.text}
         </p>
       </div>
@@ -13,33 +13,40 @@ const MessageItem = ({ message, isOwnMessage }) => {
   }
 
   const senderName =
-    message?.senderName ||
-    message?.sender?.name ||
-    message?.username ||
-    "Collaborator";
+    message?.senderName || message?.sender?.name || message?.username || "Collaborator";
 
   const text = message?.text || message?.content || "";
+  const time = formatMessageTime(message?.createdAt || message?.timestamp);
 
   return (
-    <div className={`flex gap-2 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
-      {!isOwnMessage && <Avatar name={senderName} size="sm" />}
+    <div className={`flex gap-2 py-0.5 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
+      {!isOwnMessage && (
+        <div className="mt-0.5 shrink-0">
+          <Avatar name={senderName} size="sm" />
+        </div>
+      )}
 
       <div
-        className={`max-w-[82%] rounded-xl border px-3 py-2 text-sm ${
+        className={`max-w-[min(88%,420px)] rounded-2xl border px-2.5 py-1.5 text-[13px] shadow-sm transition ${
           isOwnMessage
-            ? "border-[#007acc]/50 bg-[#007acc]/20 text-white"
-            : "border-[#3c3c3c] bg-[#252526] text-slate-100"
+            ? "border-[#0a7ab8]/35 bg-[#0a7ab8]/18 text-slate-100"
+            : "border-[#3c3c3c]/90 bg-[#252526] text-slate-100"
         }`}
       >
-        <p className={`mb-1 text-xs font-semibold ${isOwnMessage ? "text-[#cfe9ff]" : "text-slate-300"}`}>
-          {isOwnMessage ? "You" : senderName}
-        </p>
+        <div className="mb-0.5 flex items-baseline justify-between gap-2">
+          <p
+            className={`truncate text-[11px] font-semibold ${
+              isOwnMessage ? "text-[#cfe9ff]" : "text-slate-400"
+            }`}
+          >
+            {isOwnMessage ? "You" : senderName}
+          </p>
+          {time ? (
+            <p className="shrink-0 text-[10px] font-medium text-slate-500 tabular-nums">{time}</p>
+          ) : null}
+        </div>
 
-        <p className="leading-relaxed">{text}</p>
-
-        <p className="mt-1 text-right text-[10px] text-slate-400">
-          {formatMessageTime(message?.createdAt || message?.timestamp)}
-        </p>
+        <p className="whitespace-pre-wrap break-words leading-relaxed text-slate-100/95">{text}</p>
       </div>
     </div>
   );

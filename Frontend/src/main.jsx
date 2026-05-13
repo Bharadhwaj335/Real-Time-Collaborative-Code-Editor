@@ -13,7 +13,16 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <LoadingProvider>
       <SocketProvider>
         <OfflineBanner />
-        <Toaster position="top-center" />
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 4000,
+            className: "!bg-[#252526] !text-slate-100 !border !border-[#3c3c3c] !rounded-xl !shadow-xl",
+            style: { fontSize: "0.875rem" },
+            success: { iconTheme: { primary: "#4ec9b0", secondary: "#1e1e1e" } },
+            error: { iconTheme: { primary: "#f44747", secondary: "#1e1e1e" } }
+          }}
+        />
         <App />
       </SocketProvider>
     </LoadingProvider>

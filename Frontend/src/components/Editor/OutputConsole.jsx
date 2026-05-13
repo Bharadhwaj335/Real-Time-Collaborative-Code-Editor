@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { FaTerminal } from "react-icons/fa";
 
 const tabKeys = {
   output: "output",
@@ -20,10 +21,10 @@ const formatLogTime = (value) => {
 };
 
 const STATUS_STYLE = {
-  idle: "text-slate-400",
-  running: "text-amber-300",
-  success: "text-emerald-300",
-  error: "text-rose-300"
+  idle: "text-slate-500",
+  running: "text-amber-300/95",
+  success: "text-emerald-300/95",
+  error: "text-rose-300/95"
 };
 
 const STATUS_LABEL = {
@@ -32,6 +33,11 @@ const STATUS_LABEL = {
   success: "Success",
   error: "Error"
 };
+
+const tabClass = (active) =>
+  `rounded-lg px-2.5 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a7ab8]/35 ${
+    active ? "bg-[#0a7ab8] text-white shadow-sm" : "text-slate-400 hover:bg-white/[0.06] hover:text-slate-200"
+  }`;
 
 const OutputConsole = ({
   stdout = "",
@@ -69,45 +75,36 @@ const OutputConsole = ({
   }, [activeTab, errors, logs, stdout]);
 
   return (
-    <section className={`flex h-full min-h-0 flex-col rounded-xl border border-[#2a2a2a] bg-[#1e1e1e] ${className}`}>
-      <div className="flex items-center justify-between border-b border-[#2a2a2a] bg-[#252526] px-3 py-2">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveTab(tabKeys.output)}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-              activeTab === tabKeys.output ? "bg-[#007acc] text-white" : "text-slate-300 hover:bg-white/10"
-            }`}
-          >
+    <section
+      className={`flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#1e1e1e] ${className}`}
+    >
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[#2a2a2a] bg-[#252526] px-2.5 py-1.5">
+        <div className="flex items-center gap-1">
+          <span className="mr-1 hidden text-slate-500 sm:inline" aria-hidden>
+            <FaTerminal className="inline h-3 w-3" />
+          </span>
+          <button type="button" onClick={() => setActiveTab(tabKeys.output)} className={tabClass(activeTab === tabKeys.output)}>
             Output
           </button>
 
-          <button
-            onClick={() => setActiveTab(tabKeys.errors)}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-              activeTab === tabKeys.errors ? "bg-[#5a1d1d] text-[#ffb4b4]" : "text-slate-300 hover:bg-white/10"
-            }`}
-          >
+          <button type="button" onClick={() => setActiveTab(tabKeys.errors)} className={tabClass(activeTab === tabKeys.errors)}>
             Errors
           </button>
 
-          <button
-            onClick={() => setActiveTab(tabKeys.logs)}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-              activeTab === tabKeys.logs ? "bg-[#43311a] text-[#f5d08c]" : "text-slate-300 hover:bg-white/10"
-            }`}
-          >
+          <button type="button" onClick={() => setActiveTab(tabKeys.logs)} className={tabClass(activeTab === tabKeys.logs)}>
             Logs
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
-          <p className={`text-xs font-medium ${STATUS_STYLE[executionStatus] || STATUS_STYLE.idle}`}>
+        <div className="flex items-center gap-2">
+          <p className={`text-[11px] font-semibold ${STATUS_STYLE[executionStatus] || STATUS_STYLE.idle}`}>
             {STATUS_LABEL[executionStatus] || STATUS_LABEL.idle}
           </p>
 
           <button
+            type="button"
             onClick={() => onClear?.()}
-            className="rounded-md border border-[#3c3c3c] px-2.5 py-1 text-xs text-slate-300 transition hover:border-[#007acc] hover:text-[#cfe9ff]"
+            className="rounded-lg border border-[#3c3c3c] px-2 py-0.5 text-[11px] font-semibold text-slate-400 transition hover:border-[#0a7ab8]/40 hover:text-[#cfe9ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a7ab8]/30"
           >
             Clear
           </button>
@@ -116,21 +113,25 @@ const OutputConsole = ({
 
       <div
         ref={containerRef}
-        className="min-h-0 flex-1 overflow-y-auto bg-[#1e1e1e] px-3 py-3 font-mono text-xs"
+        className="min-h-0 flex-1 overflow-y-auto bg-[#1a1a1a] px-3 py-2 font-mono text-[11px] leading-relaxed"
       >
         {activeTab === tabKeys.output && (
-          <pre className="whitespace-pre-wrap break-words text-emerald-300">
-            {stdout?.trim() ? stdout : "No output yet."}
-          </pre>
+          <>
+            {stdout?.trim() ? (
+              <pre className="whitespace-pre-wrap break-words text-emerald-300/90">{stdout}</pre>
+            ) : (
+              <p className="text-slate-500">No program output yet. Run your code to see results here.</p>
+            )}
+          </>
         )}
 
         {activeTab === tabKeys.errors && (
           <div className="space-y-2">
             {errors.length === 0 ? (
-              <p className="text-amber-200">No errors.</p>
+              <p className="text-slate-500">No errors recorded for the last run.</p>
             ) : (
               errors.map((item, index) => (
-                <pre key={`${item}-${index}`} className="whitespace-pre-wrap break-words text-rose-300">
+                <pre key={`${item}-${index}`} className="whitespace-pre-wrap break-words text-rose-300/90">
                   {item}
                 </pre>
               ))
@@ -139,21 +140,21 @@ const OutputConsole = ({
         )}
 
         {activeTab === tabKeys.logs && (
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {logs.length === 0 ? (
-              <p className="text-slate-400">No logs yet.</p>
+              <p className="text-slate-500">Room activity logs will appear here.</p>
             ) : (
               logs.map((log) => {
                 const tone =
                   log.level === "error"
-                    ? "text-rose-300"
+                    ? "text-rose-300/90"
                     : log.level === "warning"
-                      ? "text-amber-300"
-                      : "text-emerald-300";
+                      ? "text-amber-300/90"
+                      : "text-emerald-300/85";
 
                 return (
                   <p key={log.id} className={tone}>
-                    [{formatLogTime(log.timestamp)}] {log.message}
+                    <span className="text-slate-500">[{formatLogTime(log.timestamp)}]</span> {log.message}
                   </p>
                 );
               })

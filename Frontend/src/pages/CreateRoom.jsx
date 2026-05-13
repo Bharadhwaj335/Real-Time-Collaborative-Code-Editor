@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaHistory, FaRocket } from "react-icons/fa";
 import toast from "react-hot-toast";
 import Button from "../components/Common/Button";
 import Navbar from "../components/Common/Navbar";
@@ -84,91 +85,79 @@ const CreateRoom = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1e1e1e] via-[#181818] to-[#111111] text-white">
+    <div className="cc-page-shell">
       <Navbar userName={user?.name || "Student"} onLogout={handleLogout} />
 
-      <div className="mx-auto w-full max-w-3xl px-4 py-10">
-        <div className="cc-workbench rounded-2xl p-6 sm:p-8 transition hover:shadow-blue-500/10">
-
-          <h2 className="text-2xl font-semibold tracking-wide">
-            🚀 Start a session
-          </h2>
-
-          <p className="mt-2 text-sm text-slate-400">
-            Configure your coding room and create a shareable space.
-          </p>
+      <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-10">
+        <div className="cc-workbench cc-card-elevated rounded-2xl p-6 sm:p-8">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#007acc]/20 text-[#cfe9ff]">
+              <FaRocket className="h-5 w-5" aria-hidden />
+            </span>
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight">Start a session</h2>
+              <p className="mt-1 text-sm text-slate-400">Configure your coding room and create a shareable space.</p>
+            </div>
+          </div>
 
           <div className="mt-8 grid gap-5">
-
-            {/* ROOM NAME */}
             <label className="text-sm">
-              <span className="mb-2 block text-slate-300">Room Name</span>
+              <span className="mb-2 block font-medium text-slate-300">Room name</span>
               <input
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
-                placeholder="DSA Practice Group"
-                className="cc-input w-full rounded-lg px-3 py-2.5 text-white transition"
+                placeholder="DSA practice group"
+                className="cc-input w-full rounded-xl px-3.5 py-3 text-white transition placeholder:text-slate-600"
               />
             </label>
 
-            {/* PARTICIPANTS */}
             <label className="text-sm">
-              <span className="mb-2 block text-slate-300">
-                Participants ({maxParticipants})
-              </span>
+              <span className="mb-2 block font-medium text-slate-300">Max participants ({maxParticipants})</span>
               <input
                 type="number"
                 min="1"
                 value={maxParticipants}
                 onChange={(e) => setMaxParticipants(Number(e.target.value))}
-                className="cc-input w-full rounded-lg px-3 py-2.5 text-white transition"
+                className="cc-input w-full rounded-xl px-3.5 py-3 text-white transition"
               />
             </label>
 
-            {/* BUTTONS */}
             <div className="grid gap-3 sm:grid-cols-2">
-              <Button onClick={handleCreateRoom} loading={loading}>
-                Create Room
+              <Button onClick={handleCreateRoom} loading={loading} className="rounded-xl py-3">
+                Create room
               </Button>
 
-              <Button variant="secondary" onClick={() => navigate("/home")}>
+              <Button variant="secondary" onClick={() => navigate("/home")} className="rounded-xl py-3">
                 Back
               </Button>
             </div>
-
           </div>
 
-          {/* RECENT ROOMS */}
           {recentRooms.length > 0 && (
-            <div className="mt-10">
-              <h3 className="text-sm font-semibold text-slate-300">
-                🔁 Last visited rooms
+            <div className="mt-10 border-t border-[#2a2a2a] pt-8">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                <FaHistory className="text-[#4ec9b0]" aria-hidden />
+                Last visited rooms
               </h3>
 
-              <div className="mt-3 space-y-3">
+              <div className="mt-4 space-y-2.5">
                 {recentRooms.map((room) => (
                   <button
                     key={room.roomId}
+                    type="button"
                     onClick={() => openRecentRoom(room.roomId)}
-                    className="flex w-full justify-between rounded-lg border border-[#3c3c3c] bg-[#252526] p-3 transition hover:border-[#007acc] hover:bg-[#2d2d2d]"
+                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-[#3c3c3c] bg-[#252526] px-4 py-3 text-left transition hover:border-[#007acc]/70 hover:bg-[#2d2d2d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007acc]/45"
                   >
-                    <div className="text-left">
-                        <p className="font-semibold text-[#cfe9ff]">
-                        {room.roomName || "Untitled Room"}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        ID: {room.roomId}
-                      </p>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-[#cfe9ff]">{room.roomName || "Untitled Room"}</p>
+                      <p className="mt-0.5 font-mono text-[11px] text-slate-500">ID · {room.roomId}</p>
                     </div>
-                    <span className="text-xs text-slate-500">
-                      Rejoin →
-                    </span>
+                    <span className="shrink-0 text-xs font-medium text-[#2aa1ff]">Rejoin →</span>
                   </button>
                 ))}
               </div>
             </div>
           )}
-
         </div>
       </div>
     </div>

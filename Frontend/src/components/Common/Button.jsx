@@ -20,7 +20,7 @@ const Button = ({
 		<button
 			type={type}
 			disabled={disabled || loading}
-			className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${variantClass} ${className}`}
+			className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-accent)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1e1e1e] disabled:cursor-not-allowed disabled:opacity-60 ${variantClass} ${className}`}
 			{...props}
 		>
 			{loading && (

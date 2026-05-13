@@ -120,10 +120,10 @@ const EditorRoom = () => {
   const [renameModal, setRenameModal] = useState({ isOpen: false, fileName: "", newName: "" });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, fileName: "" });
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
-  const [leftPanelWidth, setLeftPanelWidth] = useState(240);
-  const [rightPanelWidth, setRightPanelWidth] = useState(380);
-  const [roomPanelHeight, setRoomPanelHeight] = useState(210);
-  const [outputPanelHeight, setOutputPanelHeight] = useState(240);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(220);
+  const [rightPanelWidth, setRightPanelWidth] = useState(320);
+  const [roomPanelHeight, setRoomPanelHeight] = useState(140);
+  const [outputPanelHeight, setOutputPanelHeight] = useState(200);
 
   const lastActivityIdRef = useRef("");
   const hasLoadedCodeSnapshotRef = useRef(false);
@@ -132,10 +132,10 @@ const EditorRoom = () => {
   const activeResizeTypeRef = useRef("");
   const resizeStartXRef = useRef(0);
   const resizeStartYRef = useRef(0);
-  const resizeStartLeftWidthRef = useRef(240);
-  const resizeStartRightWidthRef = useRef(380);
-  const resizeStartRoomHeightRef = useRef(210);
-  const resizeStartOutputHeightRef = useRef(240);
+  const resizeStartLeftWidthRef = useRef(220);
+  const resizeStartRightWidthRef = useRef(320);
+  const resizeStartRoomHeightRef = useRef(140);
+  const resizeStartOutputHeightRef = useRef(200);
   const isRunning = executionStatus === "running";
 
   const roomUsers = useMemo(() => {
@@ -169,28 +169,28 @@ const EditorRoom = () => {
 
       if (activeResizeTypeRef.current === "left") {
         const deltaX = event.clientX - resizeStartXRef.current;
-        const nextWidth = Math.max(180, Math.min(420, resizeStartLeftWidthRef.current + deltaX));
+        const nextWidth = Math.max(200, Math.min(360, resizeStartLeftWidthRef.current + deltaX));
         setLeftPanelWidth(nextWidth);
         return;
       }
 
       if (activeResizeTypeRef.current === "right") {
         const deltaX = event.clientX - resizeStartXRef.current;
-        const nextWidth = Math.max(300, Math.min(560, resizeStartRightWidthRef.current - deltaX));
+        const nextWidth = Math.max(280, Math.min(480, resizeStartRightWidthRef.current - deltaX));
         setRightPanelWidth(nextWidth);
         return;
       }
 
       if (activeResizeTypeRef.current === "room-chat") {
         const deltaY = event.clientY - resizeStartYRef.current;
-        const nextHeight = Math.max(150, Math.min(420, resizeStartRoomHeightRef.current + deltaY));
+        const nextHeight = Math.max(112, Math.min(280, resizeStartRoomHeightRef.current + deltaY));
         setRoomPanelHeight(nextHeight);
         return;
       }
 
       if (activeResizeTypeRef.current === "output") {
         const deltaY = event.clientY - resizeStartYRef.current;
-        const nextHeight = Math.max(160, Math.min(420, resizeStartOutputHeightRef.current - deltaY));
+        const nextHeight = Math.max(140, Math.min(400, resizeStartOutputHeightRef.current - deltaY));
         setOutputPanelHeight(nextHeight);
       }
     };
@@ -634,73 +634,77 @@ const EditorRoom = () => {
         onLogout={handleLogout}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
-        <div className="flex min-h-0 flex-1 gap-3">
-          <aside className="cc-workbench-rail flex min-h-0 flex-col items-center gap-2 rounded-xl p-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 p-2 sm:p-2.5">
+        <div className="flex min-h-0 flex-1 gap-2">
+          <aside className="cc-workbench-rail flex min-h-0 flex-col items-center gap-1.5 rounded-2xl p-1.5">
             {sidebarItems.map((item) => (
               <button
                 key={item.key}
                 onClick={() => setSidebarMode(item.key)}
                 title={item.label}
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border transition ${
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border text-slate-400 transition ${
                   sidebarMode === item.key
-                    ? "border-[#007acc] bg-[#007acc]/20 text-[#cfe9ff]"
-                    : "border-[#3c3c3c] bg-[#1e1e1e] text-slate-300 hover:border-[#007acc]"
+                    ? "border-[#0a7ab8]/50 bg-[#0a7ab8]/15 text-[#cfe9ff]"
+                    : "border-[#3c3c3c]/80 bg-[#1e1e1e] hover:border-[#52525b] hover:text-slate-200"
                 }`}
               >
-                <item.icon />
+                <item.icon className="h-[13px] w-[13px]" />
               </button>
             ))}
           </aside>
 
           <aside
-            className="cc-panel min-h-0 shrink-0 overflow-hidden rounded-xl"
+            className="cc-panel min-h-0 shrink-0 overflow-hidden rounded-2xl"
             style={{ width: `${leftPanelWidth}px` }}
           >
             {sidebarMode === "files" ? (
               <div className="flex h-full min-h-0 flex-col">
-                <div className="cc-panel-header flex items-center justify-between px-3 py-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Files</p>
+                <div className="cc-panel-header flex items-center justify-between px-2.5 py-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Files</p>
                   <button
+                    type="button"
                     onClick={() => setIsFileModalOpen(true)}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#3c3c3c] bg-[#1e1e1e] text-slate-200 transition hover:border-[#007acc]"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-[#3c3c3c]/80 bg-[#1e1e1e] text-slate-300 transition hover:border-[#0a7ab8]/45 hover:text-[#cfe9ff]"
                   >
-                    <FaPlus className="text-[11px]" />
+                    <FaPlus className="text-[10px]" />
                   </button>
                 </div>
 
-                <div className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
+                <div className="min-h-0 flex-1 space-y-1 overflow-y-auto p-1.5">
                   {fileTabs.map((file) => (
                     <div
                       key={file.name}
-                      className={`rounded-lg border px-2 py-1.5 transition ${
+                      className={`rounded-xl border px-2 py-1 transition ${
                         file.name === activeFileName
-                          ? "border-[#007acc] bg-[#007acc]/20"
-                          : "border-[#3c3c3c] bg-[#1e1e1e]"
+                          ? "border-[#0a7ab8]/45 bg-[#0a7ab8]/10"
+                          : "border-[#3c3c3c]/70 bg-[#1e1e1e]/80 hover:border-[#52525b]"
                       }`}
                     >
                       <button
+                        type="button"
                         onClick={() => setActiveFileName(file.name)}
-                        className="w-full text-left text-xs text-slate-200"
+                        className="w-full truncate text-left text-[11px] font-medium text-slate-200"
                       >
                         {file.name}
                       </button>
 
-                      <div className="mt-1.5 flex items-center justify-end gap-1">
+                      <div className="mt-1 flex items-center justify-end gap-0.5">
                         <button
+                          type="button"
                           onClick={() => handleRenameFile(file.name)}
-                          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[#3c3c3c] text-slate-300 transition hover:border-[#007acc] hover:text-[#cfe9ff]"
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-transparent text-slate-500 transition hover:border-[#3c3c3c] hover:bg-[#252526] hover:text-[#cfe9ff]"
                           title="Rename file"
                         >
-                          <FaRegEdit className="text-[10px]" />
+                          <FaRegEdit className="text-[9px]" />
                         </button>
 
                         <button
+                          type="button"
                           onClick={() => handleDeleteFile(file.name)}
-                          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[#3c3c3c] text-slate-300 transition hover:border-[#ef4444]/60 hover:text-rose-300"
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-transparent text-slate-500 transition hover:border-rose-500/25 hover:bg-rose-950/25 hover:text-rose-300"
                           title="Delete file"
                         >
-                          <FaTrash className="text-[10px]" />
+                          <FaTrash className="text-[9px]" />
                         </button>
                       </div>
                     </div>
@@ -708,7 +712,7 @@ const EditorRoom = () => {
                 </div>
               </div>
             ) : (
-              <div className="min-h-0 h-full overflow-auto p-3">
+              <div className="h-full min-h-0 overflow-y-auto p-2.5">
                 <UserList
                   users={roomUsers}
                   currentUserId={user.id}
@@ -724,10 +728,10 @@ const EditorRoom = () => {
             className="group hidden w-2 shrink-0 cursor-col-resize items-center justify-center rounded-md lg:flex"
             title="Drag to resize explorer"
           >
-            <span className="h-14 w-1 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#007acc]" />
+            <span className="h-14 w-1 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#0a7ab8]" />
           </button>
 
-          <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1e1e1e]">
+          <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#1e1e1e]">
             <EditorToolbar
               roomId={roomId}
               language={language}
@@ -739,15 +743,16 @@ const EditorRoom = () => {
               executionStatus={executionStatus}
             />
 
-            <div className="flex items-center gap-2 overflow-x-auto border-b border-[#2a2a2a] bg-[#252526] px-3 py-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto border-b border-[#2a2a2a] bg-[#252526] px-2 py-1.5">
               {fileTabs.map((file) => (
                 <button
                   key={file.name}
+                  type="button"
                   onClick={() => setActiveFileName(file.name)}
-                  className={`rounded-lg border px-3 py-1.5 text-xs transition ${
+                  className={`shrink-0 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition ${
                     file.name === activeFileName
-                      ? "border-[#007acc] bg-[#007acc]/20 text-[#cfe9ff]"
-                      : "border-[#3c3c3c] bg-[#1e1e1e] text-slate-300 hover:border-[#007acc]"
+                      ? "border-[#0a7ab8]/45 bg-[#0a7ab8]/12 text-[#cfe9ff]"
+                      : "border-[#3c3c3c]/80 bg-[#1e1e1e] text-slate-400 hover:border-[#52525b] hover:text-slate-200"
                   }`}
                 >
                   {file.name}
@@ -755,10 +760,11 @@ const EditorRoom = () => {
               ))}
 
               <button
+                type="button"
                 onClick={() => setIsFileModalOpen(true)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#3c3c3c] bg-[#1e1e1e] text-slate-300 transition hover:border-[#007acc]"
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#3c3c3c]/80 bg-[#1e1e1e] text-slate-400 transition hover:border-[#0a7ab8]/40 hover:text-[#cfe9ff]"
               >
-                <FaPlus className="text-[10px]" />
+                <FaPlus className="text-[9px]" />
               </button>
             </div>
 
@@ -774,12 +780,14 @@ const EditorRoom = () => {
               />
             </div>
 
-            <div className="border-t border-[#2a2a2a] bg-[#252526] px-3 py-2 text-xs text-slate-300">
+            <div className="border-t border-[#2a2a2a] bg-[#252526] px-2.5 py-1.5 text-[11px] text-slate-500">
               {recentActivity.length === 0 ? (
-                <p>No remote edits yet.</p>
+                <p className="truncate">No remote edits yet.</p>
               ) : (
-                <p>
-                  {recentActivity[0].userName} updated {recentActivity[0].fileName} ({recentActivity[0].summary}) {formatActivityTime(recentActivity[0].timestamp)}
+                <p className="truncate">
+                  <span className="font-medium text-slate-300">{recentActivity[0].userName}</span> ·{" "}
+                  {recentActivity[0].fileName} ({recentActivity[0].summary}){" "}
+                  <span className="text-slate-600">{formatActivityTime(recentActivity[0].timestamp)}</span>
                 </p>
               )}
             </div>
@@ -791,11 +799,11 @@ const EditorRoom = () => {
             className="group hidden w-2 shrink-0 cursor-col-resize items-center justify-center rounded-md lg:flex"
             title="Drag to resize right panel"
           >
-            <span className="h-14 w-1 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#007acc]" />
+            <span className="h-14 w-1 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#0a7ab8]" />
           </button>
 
           <aside
-            className="cc-panel flex min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-xl p-3 lg:w-auto"
+            className="cc-panel flex min-h-0 w-full shrink-0 flex-col gap-0 overflow-hidden rounded-2xl p-2 lg:w-auto"
             style={{ width: `${rightPanelWidth}px` }}
           >
             <div className="shrink-0 overflow-hidden" style={{ height: `${roomPanelHeight}px` }}>
@@ -811,13 +819,13 @@ const EditorRoom = () => {
             <button
               type="button"
               onMouseDown={(event) => startPaneResize("room-chat", event)}
-              className="group my-2 flex h-3 shrink-0 cursor-row-resize items-center justify-center rounded-md"
+              className="group flex h-2.5 shrink-0 cursor-row-resize items-center justify-center rounded-md"
               title="Drag to resize room panel"
             >
-              <span className="h-1 w-14 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#007acc]" />
+              <span className="h-1 w-12 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#0a7ab8]" />
             </button>
 
-            <div className="min-h-[180px] flex-1 overflow-hidden">
+            <div className="min-h-[160px] flex-1 overflow-hidden">
               <ChatBox roomId={roomId} user={user} />
             </div>
           </aside>
@@ -826,13 +834,13 @@ const EditorRoom = () => {
         <button
           type="button"
           onMouseDown={(event) => startPaneResize("output", event)}
-          className="group flex h-3 shrink-0 cursor-row-resize items-center justify-center rounded-md"
+          className="group flex h-2.5 shrink-0 cursor-row-resize items-center justify-center rounded-md"
           title="Drag to resize output panel"
         >
-            <span className="h-1 w-16 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#007acc]" />
+          <span className="h-1 w-14 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#0a7ab8]" />
         </button>
 
-            <div className="shrink-0 overflow-hidden" style={{ height: `${outputPanelHeight}px` }}>
+        <div className="shrink-0 overflow-hidden" style={{ height: `${outputPanelHeight}px` }}>
           <OutputConsole
             stdout={output.stdout}
             stderr={output.stderr}
@@ -843,15 +851,21 @@ const EditorRoom = () => {
           />
         </div>
 
-            <div className="cc-statusbar flex items-center justify-between gap-3 border-t border-[#2a2a2a] px-4 py-2 text-xs">
-          <div className="flex items-center gap-3">
-            <span>Ln {roomUsers.length ? 1 : 1}, Col 1</span>
-            <span>{language}</span>
-            <span>{roomDisplayName}</span>
+        <div className="cc-statusbar flex items-center justify-between gap-3 border-t border-[#2a2a2a] px-3 py-1.5 text-[11px]">
+          <div className="flex min-w-0 flex-1 items-center gap-2 truncate text-slate-200/90">
+            <span className="hidden text-slate-400 sm:inline">Ln 1, Col 1</span>
+            <span className="rounded border border-white/10 bg-black/10 px-1.5 py-0.5 font-mono text-[10px] uppercase text-slate-200">
+              {language}
+            </span>
+            <span className="truncate text-slate-300/90">{roomDisplayName}</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span>{isConnected ? "Live Share" : "Offline"}</span>
-            <span>{currentParticipants || roomUsers.length} collaborators</span>
+          <div className="flex shrink-0 items-center gap-2 text-slate-200/90">
+            <span className="rounded border border-white/10 bg-black/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase">
+              {isConnected ? "Live" : "Reconnecting"}
+            </span>
+            <span className="hidden tabular-nums text-slate-400 sm:inline">
+              {currentParticipants || roomUsers.length} online
+            </span>
           </div>
         </div>
       </div>
@@ -868,7 +882,7 @@ const EditorRoom = () => {
               value={newFileName}
               onChange={(event) => setNewFileName(event.target.value)}
               placeholder="App.js"
-              className="mt-2 w-full rounded-lg border border-[#334155] bg-[#0f172a] px-3 py-2.5 text-white outline-none transition focus:border-[#3b82f6]"
+              className="cc-input mt-2 w-full rounded-lg px-3 py-2 text-[13px] text-white"
             />
           </label>
 

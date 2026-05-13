@@ -170,114 +170,119 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
+    <div className="cc-page-shell">
       <Navbar userName={displayName} onLogout={handleLogout} />
 
-      <div className="mx-auto w-full max-w-4xl px-4 py-8">
+      <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-8">
         {loading ? (
-          <div className="rounded-xl border border-[#334155] bg-[#1e293b] p-8">
+          <div className="rounded-2xl border border-[#2a2a2a] bg-[#252526] p-6 shadow-[var(--cc-shadow-soft)]">
             <Loader label="Loading profile..." />
           </div>
         ) : (
-          <div className="rounded-2xl border border-[#334155] bg-[#1e293b] p-6 shadow-2xl sm:p-8">
-            <div className="flex flex-col items-center text-center">
-              <Avatar name={displayName} size="lg" className="h-20 w-20 text-xl" />
-              <h1 className="mt-4 text-2xl font-bold">{displayName}</h1>
-              <p className="mt-1 text-sm text-slate-300">{profile?.email || "No email"}</p>
+          <div className="rounded-2xl border border-[#2a2a2a] bg-[#252526] p-5 shadow-[var(--cc-shadow-soft)] sm:p-6">
+            <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:gap-5 sm:text-left">
+              <Avatar name={displayName} size="lg" className="h-16 w-16 shrink-0 text-lg sm:h-[4.5rem] sm:w-[4.5rem] sm:text-xl" />
+              <div className="mt-4 min-w-0 sm:mt-1">
+                <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">{displayName}</h1>
+                <p className="mt-1 truncate text-[13px] text-slate-500">{profile?.email || "No email on file"}</p>
+              </div>
             </div>
 
-            <div className="mt-8 flex flex-wrap items-center gap-2 border-b border-[#334155] pb-3">
+            <div className="mt-6 flex gap-1 rounded-xl border border-[#2a2a2a] bg-[#1e1e1e] p-1">
               <button
+                type="button"
                 onClick={() => setActiveTab("profile")}
-                className={`rounded-lg px-3 py-1.5 text-sm transition ${
+                className={`flex-1 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${
                   activeTab === "profile"
-                    ? "bg-[#3b82f6]/20 text-blue-200"
-                    : "text-slate-300 hover:bg-white/10"
+                    ? "bg-[#0a7ab8] text-white shadow-sm"
+                    : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
                 }`}
               >
                 Profile
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab("rooms")}
-                className={`rounded-lg px-3 py-1.5 text-sm transition ${
+                className={`flex-1 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${
                   activeTab === "rooms"
-                    ? "bg-[#3b82f6]/20 text-blue-200"
-                    : "text-slate-300 hover:bg-white/10"
+                    ? "bg-[#0a7ab8] text-white shadow-sm"
+                    : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
                 }`}
               >
-                My Rooms
+                My rooms
               </button>
             </div>
 
             {activeTab === "profile" ? (
-              <div className="mt-5 space-y-4">
-                <div className="rounded-xl border border-[#334155] bg-[#0f172a] p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-400">Name</p>
+              <div className="mt-5 space-y-3">
+                <div className="rounded-xl border border-[#2a2a2a] bg-[#1e1e1e] p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Name</p>
                   {isEditing ? (
                     <input
                       value={editName}
                       onChange={(event) => setEditName(event.target.value)}
-                      className="mt-2 w-full rounded-lg border border-[#334155] bg-[#1e293b] px-3 py-2 text-white outline-none transition focus:border-[#3b82f6]"
+                      className="cc-input mt-2 w-full rounded-lg px-2.5 py-2 text-[13px] text-white"
                     />
                   ) : (
-                    <p className="mt-2 text-sm text-slate-100">{displayName}</p>
+                    <p className="mt-2 text-[13px] font-medium text-slate-200">{displayName}</p>
                   )}
                 </div>
 
-                <div className="rounded-xl border border-[#334155] bg-[#0f172a] p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-400">Email</p>
+                <div className="rounded-xl border border-[#2a2a2a] bg-[#1e1e1e] p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Email</p>
                   {isEditing ? (
                     <input
                       type="email"
                       value={editEmail}
                       onChange={(event) => setEditEmail(event.target.value)}
-                      className="mt-2 w-full rounded-lg border border-[#334155] bg-[#1e293b] px-3 py-2 text-white outline-none transition focus:border-[#3b82f6]"
+                      className="cc-input mt-2 w-full rounded-lg px-2.5 py-2 text-[13px] text-white"
                     />
                   ) : (
-                    <p className="mt-2 text-sm text-slate-100">{profile?.email || "No email"}</p>
+                    <p className="mt-2 text-[13px] font-medium text-slate-200">{profile?.email || "No email"}</p>
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 pt-1">
                   {isEditing ? (
                     <>
-                      <Button onClick={saveProfile} loading={isSaving} disabled={isSaving}>
+                      <Button onClick={saveProfile} loading={isSaving} disabled={isSaving} className="!py-2 !text-xs">
                         Save
                       </Button>
-                      <Button variant="secondary" onClick={cancelEdit} disabled={isSaving}>
+                      <Button variant="secondary" onClick={cancelEdit} disabled={isSaving} className="!py-2 !text-xs">
                         Cancel
                       </Button>
                     </>
                   ) : (
-                    <Button variant="secondary" onClick={() => setIsEditing(true)}>
-                      Edit Profile
+                    <Button variant="secondary" onClick={() => setIsEditing(true)} className="!py-2 !text-xs">
+                      Edit profile
                     </Button>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-2">
                 {recentRooms.length === 0 ? (
-                  <p className="rounded-xl border border-[#334155] bg-[#0f172a] p-4 text-sm text-slate-300">
-                    No recent rooms found yet.
+                  <p className="rounded-xl border border-dashed border-[#3c3c3c] bg-[#1e1e1e]/60 px-3 py-6 text-center text-[13px] text-slate-500">
+                    No recent rooms yet.
                   </p>
                 ) : (
                   recentRooms.map((room) => (
                     <button
                       key={room.roomId}
+                      type="button"
                       onClick={() => openRecentRoom(room.roomId)}
-                      className="flex w-full items-center justify-between rounded-xl border border-[#334155] bg-[#0f172a] p-4 text-left transition hover:border-[#3b82f6]/70 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+                      className="flex w-full items-center justify-between gap-3 rounded-xl border border-[#2a2a2a] bg-[#1e1e1e] px-3 py-2.5 text-left transition hover:border-[#0a7ab8]/35 hover:bg-[#252526]"
                     >
-                      <div>
-                        <p className="font-semibold tracking-wide text-slate-100">
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-semibold text-white">
                           {room.roomName || room.name || "Untitled Room"}
                         </p>
-                        <p className="mt-1 text-xs uppercase tracking-wide text-slate-400">
-                          ID: {room.roomId}
+                        <p className="mt-0.5 font-mono text-[10px] text-slate-500">ID · {room.roomId}</p>
+                        <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                          {room.language}
                         </p>
-                        <p className="mt-1 text-xs text-slate-300">{room.language}</p>
                       </div>
-                      <span className="text-xs text-blue-300">Open</span>
+                      <span className="shrink-0 text-[11px] font-semibold text-[#5cb3e8]">Open</span>
                     </button>
                   ))
                 )}

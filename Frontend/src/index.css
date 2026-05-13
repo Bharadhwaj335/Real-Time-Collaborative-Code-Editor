@@ -10,13 +10,16 @@
 	--cc-panel-strong: #2d2d2d;
 	--cc-border: #3c3c3c;
 	--cc-border-soft: #2a2a2a;
-	--cc-accent: #007acc;
-	--cc-accent-soft: #2aa1ff;
+	/* Slightly desaturated primary vs pure #007acc */
+	--cc-accent: #0a7ab8;
+	--cc-accent-soft: #5cb3e8;
 	--cc-text: #d4d4d4;
 	--cc-text-dim: #9ca3af;
-	--cc-success: #4ec9b0;
-	--cc-warning: #dcdcaa;
-	--cc-danger: #f44747;
+	--cc-success: #3db39c;
+	--cc-warning: #c9c48a;
+	--cc-danger: #e05252;
+	--cc-shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.38);
+	--cc-shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
 html,
@@ -25,10 +28,14 @@ body,
 	min-height: 100%;
 }
 
+html {
+	scroll-behavior: smooth;
+}
+
 body {
 	background:
-		radial-gradient(circle at top left, rgba(0, 122, 204, 0.16), transparent 28%),
-		radial-gradient(circle at top right, rgba(78, 201, 176, 0.08), transparent 22%),
+		radial-gradient(circle at top left, rgba(10, 122, 184, 0.1), transparent 30%),
+		radial-gradient(circle at top right, rgba(61, 179, 156, 0.06), transparent 24%),
 		linear-gradient(180deg, #1e1e1e 0%, #181818 100%);
 	color: var(--cc-text);
 	font-family: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
@@ -38,7 +45,7 @@ body {
 .cc-workbench {
 	background: linear-gradient(180deg, rgba(32, 32, 32, 0.98), rgba(24, 24, 24, 0.98));
 	border: 1px solid var(--cc-border-soft);
-	box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+	box-shadow: var(--cc-shadow-elevated);
 }
 
 .cc-workbench-rail {
@@ -83,7 +90,11 @@ body {
 
 .cc-input:focus {
 	border-color: var(--cc-accent);
-	box-shadow: 0 0 0 1px rgba(0, 122, 204, 0.28);
+	box-shadow: 0 0 0 2px rgba(10, 122, 184, 0.22);
+}
+
+.cc-input::placeholder {
+	color: #6b7280;
 }
 
 .cc-button {
@@ -99,13 +110,13 @@ body {
 }
 
 .cc-button-primary {
-	background: linear-gradient(180deg, #0e639c 0%, #007acc 100%);
-	border: 1px solid #3794ff;
+	background: linear-gradient(180deg, #0c5a8a 0%, var(--cc-accent) 100%);
+	border: 1px solid rgba(92, 179, 232, 0.45);
 	color: #ffffff;
 }
 
 .cc-button-primary:hover {
-	background: linear-gradient(180deg, #1177bb 0%, #1890ff 100%);
+	background: linear-gradient(180deg, #0d6ba5 0%, #0d8fd4 100%);
 }
 
 .cc-button-ghost {
@@ -178,5 +189,103 @@ body {
 .cc-remote-cursor-5 {
 	color: #9cdcfe;
 	background: rgba(156, 220, 254, 0.16);
+}
+
+@layer utilities {
+	.cc-page-shell {
+		@apply min-h-screen bg-gradient-to-br from-[#1e1e1e] via-[#181818] to-[#111111] text-slate-100 antialiased;
+	}
+
+	.cc-link {
+		@apply font-medium text-[#2aa1ff] transition-colors hover:text-[#cfe9ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007acc]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1e1e1e] rounded-sm;
+	}
+
+	.cc-card-elevated {
+		@apply rounded-2xl border border-[#2a2a2a]/90;
+		box-shadow: var(--cc-shadow-soft);
+	}
+}
+
+::selection {
+	background: rgba(10, 122, 184, 0.32);
+	color: #f8fafc;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+@keyframes cc-modal-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px) scale(0.98);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+@keyframes cc-backdrop-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.cc-modal-backdrop {
+	animation: cc-backdrop-in 0.2s ease-out forwards;
+}
+
+.cc-modal-panel {
+	animation: cc-modal-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Thin dark scrollbars (WebKit + Firefox) */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: #3f3f46 #1a1a1a;
+}
+
+*::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+	background: #1a1a1a;
+}
+
+*::-webkit-scrollbar-thumb {
+	background: #3f3f46;
+	border-radius: 9999px;
+	border: 2px solid #1a1a1a;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+	background: #52525b;
+}
+
+.cc-dropdown-enter {
+	animation: cc-dropdown-in 0.16s ease-out forwards;
+}
+
+@keyframes cc-dropdown-in {
+	from {
+		opacity: 0;
+		transform: translateY(-4px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 

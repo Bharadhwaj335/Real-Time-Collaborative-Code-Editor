@@ -149,6 +149,22 @@ export const saveRecentRoom = (room) => {
 	safeStorageSet(STORAGE_KEYS.RECENT_ROOMS, JSON.stringify(updated));
 };
 
+/** Short relative label for recent-room "last opened" UI (e.g. "Just now", "3h ago"). */
+export const formatRecentOpened = (iso) => {
+	if (!iso || typeof iso !== "string") return "";
+
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return "";
+
+	const diffMs = Date.now() - date.getTime();
+	if (diffMs < 60_000) return "Just now";
+	if (diffMs < 3_600_000) return `${Math.max(1, Math.floor(diffMs / 60_000))}m ago`;
+	if (diffMs < 86_400_000) return `${Math.floor(diffMs / 3_600_000)}h ago`;
+	if (diffMs < 7 * 86_400_000) return `${Math.floor(diffMs / 86_400_000)}d ago`;
+
+	return date.toLocaleDateString([], { month: "short", day: "numeric" });
+};
+
 export const createGuestIdentity = () => {
 	const random = Math.floor(100 + Math.random() * 900);
 	return {

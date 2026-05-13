@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaLink } from "react-icons/fa";
 import toast from "react-hot-toast";
 import Navbar from "../components/Common/Navbar";
+import Button from "../components/Common/Button";
 import { joinRoom } from "../services/api";
 import { disconnectSocket } from "../services/socket";
 import {
@@ -61,73 +63,51 @@ const JoinRoom = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1e1e1e] via-[#181818] to-[#111111] text-white">
-      
+    <div className="cc-page-shell">
       <Navbar userName={user?.name || "Student"} onLogout={handleLogout} />
 
-      <div className="mx-auto flex w-full max-w-xl flex-col justify-center px-4 py-12">
+      <div className="mx-auto flex w-full max-w-xl flex-col justify-center px-4 py-10 sm:py-14">
+        <div className="cc-workbench cc-card-elevated rounded-3xl p-6 sm:p-8">
+          <div className="flex flex-col items-center text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#007acc]/20 text-[#cfe9ff]">
+              <FaLink className="h-5 w-5" aria-hidden />
+            </span>
+            <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Join a room</h2>
+            <p className="mt-2 max-w-sm text-sm text-slate-400">Enter a room ID or paste an invite link from your instructor or teammate.</p>
+          </div>
 
-        {/* MAIN CARD */}
-        <div className="cc-workbench rounded-3xl p-8">
-
-          {/* HEADER */}
-          <h2 className="text-3xl font-bold text-center">
-            🔗 Join Room
-          </h2>
-
-          <p className="mt-2 text-center text-sm text-slate-400">
-            Enter a room ID or paste an invite link
-          </p>
-
-          {/* TABS */}
-          <div className="mt-6 flex rounded-xl border border-[#2a2a2a] bg-[#252526] p-1">
+          <div className="mt-8 flex rounded-xl border border-[#2a2a2a] bg-[#1e1e1e]/80 p-1">
             <button
+              type="button"
               onClick={() => navigate("/create-room")}
-              className="flex-1 rounded-lg py-2 text-sm text-slate-400 hover:text-white transition"
+              className="flex-1 rounded-lg py-2.5 text-sm font-medium text-slate-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007acc]/40"
             >
               Create
             </button>
-
-            <button className="flex-1 rounded-lg bg-[#007acc] py-2 text-sm text-white">
+            <span className="flex-1 rounded-lg bg-[#007acc] py-2.5 text-center text-sm font-semibold text-white shadow-inner">
               Join
-            </button>
+            </span>
           </div>
 
-          {/* INPUT */}
           <div className="mt-6">
-            <label className="text-sm text-slate-300">
-              Room ID or Invite Link
-            </label>
-
+            <label className="text-sm font-medium text-slate-300">Room ID or invite link</label>
             <input
               type="text"
               value={roomInput}
               onChange={(e) => setRoomInput(e.target.value)}
-              placeholder="e.g. ABC123 or full link"
-              className="cc-input mt-2 w-full rounded-xl px-4 py-3 text-white transition"
+              placeholder="e.g. ABC123 or full URL"
+              className="cc-input mt-2 w-full rounded-xl px-4 py-3.5 text-white transition placeholder:text-slate-600"
             />
           </div>
 
-          {/* BUTTONS */}
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            
-            <button
-              onClick={handleJoin}
-              disabled={loading}
-              className="rounded-xl bg-gradient-to-r from-[#0e639c] to-[#007acc] py-3 font-semibold hover:scale-[1.02] transition disabled:opacity-60"
-            >
-              {loading ? "Joining..." : "Join Room"}
-            </button>
-
-            <button
-              onClick={() => navigate("/home")}
-              className="rounded-xl border border-[#3c3c3c] bg-[#252526] py-3 hover:border-[#007acc] transition"
-            >
+            <Button type="button" onClick={handleJoin} loading={loading} className="rounded-xl py-3">
+              Join room
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => navigate("/home")} className="rounded-xl py-3">
               Back
-            </button>
-
+            </Button>
           </div>
-
         </div>
       </div>
     </div>

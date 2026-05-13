@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FaComments } from "react-icons/fa";
 import toast from "react-hot-toast";
 import MessageItem from "./MessageItem";
 import useSocket from "../../hooks/useSocket";
@@ -267,15 +268,15 @@ const ChatBox = ({ roomId, user }) => {
   };
 
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-xl border border-[#2a2a2a] bg-[#1e1e1e]">
-      <header className="border-b border-[#2a2a2a] bg-[#252526] px-4 py-3">
-        <div className="flex items-center justify-between gap-3">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#1e1e1e]">
+      <header className="shrink-0 border-b border-[#2a2a2a] bg-[#252526] px-3 py-2">
+        <div className="flex items-center justify-between gap-2">
           <div>
-            <h3 className="text-sm font-semibold text-white">Chat</h3>
-            <p className="text-xs text-slate-400">Messages stay in this room.</p>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-300">Chat</h3>
+            <p className="text-[11px] text-slate-500">Synced for everyone in this room.</p>
           </div>
-          <span className="rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-2 py-1 text-[11px] text-slate-400">
-            {messages.length} msgs
+          <span className="rounded-lg border border-[#3c3c3c] bg-[#1e1e1e] px-2 py-0.5 text-[10px] font-medium tabular-nums text-slate-500">
+            {messages.length}
           </span>
         </div>
       </header>
@@ -283,14 +284,20 @@ const ChatBox = ({ roomId, user }) => {
       <div
         ref={messageContainerRef}
         onScroll={handleMessageScroll}
-        className="flex-1 space-y-3 overflow-y-auto px-4 py-4"
+        className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3"
       >
         {loading && <Loader label="Loading chat..." />}
 
         {!loading && messages.length === 0 && (
-          <p className="rounded-lg border border-[#3c3c3c] bg-[#252526] p-3 text-sm text-slate-400">
-            No messages yet. Start the conversation.
-          </p>
+          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#3c3c3c]/80 bg-[#252526]/40 px-4 py-8 text-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#3c3c3c] bg-[#1e1e1e] text-slate-500">
+              <FaComments className="h-4 w-4" aria-hidden />
+            </span>
+            <p className="text-[13px] font-medium text-slate-300">No messages yet</p>
+            <p className="max-w-[240px] text-[12px] leading-relaxed text-slate-500">
+              Say hi to your collaborators — messages are saved for this room.
+            </p>
+          </div>
         )}
 
         {!loading &&
@@ -303,12 +310,12 @@ const ChatBox = ({ roomId, user }) => {
           ))}
       </div>
 
-      <div className="border-t border-[#2a2a2a] bg-[#252526] p-3">
+      <div className="shrink-0 border-t border-[#2a2a2a] bg-[#252526] p-2.5">
         {Object.keys(typingUsers).length > 0 && (
-          <p className="mb-2 rounded-md border border-[#3c3c3c] bg-[#1e1e1e] px-2 py-1 text-xs text-[#dcdcaa]">
+          <p className="mb-2 rounded-lg border border-[#3c3c3c]/80 bg-[#1e1e1e] px-2 py-1 text-[11px] text-[#c9c48a]">
             {Object.values(typingUsers).slice(0, 2).join(", ")}
             {Object.keys(typingUsers).length > 2 ? " and others" : ""}{" "}
-            {Object.keys(typingUsers).length > 1 ? "are" : "is"} typing...
+            {Object.keys(typingUsers).length > 1 ? "are" : "is"} typing…
           </p>
         )}
 
@@ -327,9 +334,9 @@ const ChatBox = ({ roomId, user }) => {
                 emitTypingState(false);
               }, 1000);
             }}
-            placeholder="Type a message..."
+            placeholder="Message the room…"
             rows={2}
-            className="min-h-[54px] flex-1 resize-none rounded-lg border border-[#3c3c3c] bg-[#1e1e1e] px-3 py-2 text-sm text-white outline-none transition focus:border-[#007acc]"
+            className="min-h-[48px] flex-1 resize-none rounded-lg border border-[#3c3c3c] bg-[#1e1e1e] px-2.5 py-2 text-[13px] text-white outline-none transition placeholder:text-slate-600 focus:border-[#0a7ab8] focus:ring-1 focus:ring-[#0a7ab8]/30"
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
@@ -338,7 +345,7 @@ const ChatBox = ({ roomId, user }) => {
             }}
           />
 
-          <Button onClick={handleSend} className="h-[54px]">
+          <Button onClick={handleSend} className="h-[48px] shrink-0 !px-3 !py-2 !text-xs !font-semibold">
             Send
           </Button>
         </div>
