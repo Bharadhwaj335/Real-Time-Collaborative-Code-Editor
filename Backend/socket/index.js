@@ -13,7 +13,7 @@ const authenticateSocket = (socket, next) => {
   const token = socket.handshake.auth?.token;
 
   if (!token) {
-    return next();
+    return next(new Error("Authentication required. No token provided."));
   }
 
   try {
@@ -21,7 +21,7 @@ const authenticateSocket = (socket, next) => {
     socket.user = decoded;
     return next();
   } catch (_error) {
-    return next(new Error("Unauthorized socket connection"));
+    return next(new Error("Unauthorized: Invalid or expired token"));
   }
 };
 

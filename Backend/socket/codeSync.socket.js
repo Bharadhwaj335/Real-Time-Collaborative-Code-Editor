@@ -142,6 +142,9 @@ export const registerCodeSyncSocket = (io, socket) => {
       const roomId = normalizeRoomId(payload.roomId || "");
 
       if (!roomId) {
+        socket.emit("CODE_CHANGE_ERROR", {
+          message: "Room ID is required.",
+        });
         return;
       }
 
@@ -215,6 +218,10 @@ export const registerCodeSyncSocket = (io, socket) => {
       });
     } catch (error) {
       logger.error("CODE_CHANGE failed", error);
+      socket.emit("CODE_CHANGE_ERROR", {
+        roomId: normalizeRoomId(payload?.roomId || ""),
+        message: error?.message || "Failed to save code changes.",
+      });
     }
   });
 
@@ -223,6 +230,10 @@ export const registerCodeSyncSocket = (io, socket) => {
       const roomId = normalizeRoomId(payload.roomId || "");
 
       if (!roomId) {
+        socket.emit("FILE_CREATE_ERROR", {
+          roomId,
+          message: "Room ID is required.",
+        });
         return;
       }
 
@@ -267,8 +278,6 @@ export const registerCodeSyncSocket = (io, socket) => {
       room.currentLanguage = newFile.language;
       room.code = newFile.code;
 
-      await room.save();
-
       emitFileListUpdate(io, roomId, room, {
         language: newFile.language,
         createdBy: {
@@ -297,7 +306,7 @@ export const registerCodeSyncSocket = (io, socket) => {
       logger.error("FILE_CREATE failed", error);
       socket.emit("FILE_CREATE_ERROR", {
         roomId: normalizeRoomId(payload.roomId || ""),
-        message: "Unable to create file right now.",
+        message: error?.message || "Unable to create file right now.",
       });
     }
   });
@@ -307,6 +316,10 @@ export const registerCodeSyncSocket = (io, socket) => {
       const roomId = normalizeRoomId(payload.roomId || "");
 
       if (!roomId) {
+        socket.emit("FILE_CHANGE_ERROR", {
+          roomId,
+          message: "Room ID is required.",
+        });
         return;
       }
 
@@ -350,6 +363,10 @@ export const registerCodeSyncSocket = (io, socket) => {
       });
     } catch (error) {
       logger.error("FILE_CHANGE failed", error);
+      socket.emit("FILE_CHANGE_ERROR", {
+        roomId: normalizeRoomId(payload?.roomId || ""),
+        message: error?.message || "Unable to switch file right now.",
+      });
     }
   });
 
@@ -358,6 +375,10 @@ export const registerCodeSyncSocket = (io, socket) => {
       const roomId = normalizeRoomId(payload.roomId || "");
 
       if (!roomId) {
+        socket.emit("FILE_RENAME_ERROR", {
+          roomId,
+          message: "Room ID is required.",
+        });
         return;
       }
 
@@ -428,6 +449,10 @@ export const registerCodeSyncSocket = (io, socket) => {
       }
     } catch (error) {
       logger.error("FILE_RENAME failed", error);
+      socket.emit("FILE_RENAME_ERROR", {
+        roomId: normalizeRoomId(payload?.roomId || ""),
+        message: error?.message || "Unable to rename file right now.",
+      });
     }
   });
 
@@ -436,6 +461,10 @@ export const registerCodeSyncSocket = (io, socket) => {
       const roomId = normalizeRoomId(payload.roomId || "");
 
       if (!roomId) {
+        socket.emit("FILE_DELETE_ERROR", {
+          roomId,
+          message: "Room ID is required.",
+        });
         return;
       }
 
@@ -498,7 +527,7 @@ export const registerCodeSyncSocket = (io, socket) => {
       logger.error("FILE_DELETE failed", error);
       socket.emit("FILE_DELETE_ERROR", {
         roomId: normalizeRoomId(payload.roomId || ""),
-        message: "Unable to delete file right now.",
+        message: error?.message || "Unable to delete file right now.",
       });
     }
   });

@@ -5,6 +5,17 @@ import {
   normalizeLanguage,
 } from "../utils/language.js";
 
+const ALLOWED_EXECUTION_LANGUAGES = new Set([
+  "javascript",
+  "typescript",
+  "python",
+  "java",
+  "cpp",
+  "c",
+  "go",
+  "rust",
+]);
+
 const normalizeRoomId = (value = "") => value.trim().toUpperCase();
 
 const createFileId = () =>
@@ -177,13 +188,21 @@ const applyFilesToRoom = ({
 
 export const executeCode = async (req, res, next) => {
   try {
-    const code = req.body?.code;
-    const language = req.body?.language;
+    const code = String(req.body?.code || "");
+    const language = normalizeLanguage(req.body?.language, "javascript");
+    const stdin = String(req.body?.stdin || "");
 
-    if (!code || !language) {
+    if (!ALLOWED_EXECUTION_LANGUAGES.has(language)) {
       return res.status(400).json({
         success: false,
-        message: "code and language are required",
+        message: `Language not supported. Allowed: ${Array.from(ALLOWED_EXECUTION_LANGUAGES).join(", ")}`,
+      });
+    }
+
+    if (code.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Code cannot be empty",
       });
     }
 
@@ -194,10 +213,17 @@ export const executeCode = async (req, res, next) => {
       });
     }
 
+    if (stdin.length > 5000) {
+      return res.status(400).json({
+        success: false,
+        message: "Input (stdin) exceeds 5KB limit",
+      });
+    }
+
     const result = await executeCodeRemotely({
       code,
       language,
-      stdin: req.body?.stdin || "",
+      stdin,
     });
 
     return res.status(200).json({

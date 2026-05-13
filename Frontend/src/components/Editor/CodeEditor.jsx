@@ -48,18 +48,52 @@ const CodeEditor = ({
 }) => {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
+  const modelCacheRef = useRef(new Map());
   const activityDecorationsRef = useRef([]);
   const cursorDecorationsRef = useRef([]);
   const preventEmitRef = useRef(false);
+  const onCodeChangeRef = useRef(onCodeChange);
+  const onCursorMoveRef = useRef(onCursorMove);
+  const activeFileNameRef = useRef(activeFileName);
+  const currentModelKeyRef = useRef(activeFileName);
+
+  useEffect(() => {
+    onCodeChangeRef.current = onCodeChange;
+  }, [onCodeChange]);
+
+  useEffect(() => {
+    onCursorMoveRef.current = onCursorMove;
+  }, [onCursorMove]);
+
+  useEffect(() => {
+    activeFileNameRef.current = activeFileName;
+  }, [activeFileName]);
 
   const handleMount = (editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
 
+    const getModelKey = () => activeFileNameRef.current || "main.js";
+    const ensureModelForActiveFile = () => {
+      const modelKey = getModelKey();
+      const existingModel = modelCacheRef.current.get(modelKey);
+
+      if (existingModel) {
+        return existingModel;
+      }
+
+      const nextModel = monaco.editor.createModel(code || "", language || "javascript");
+      modelCacheRef.current.set(modelKey, nextModel);
+      return nextModel;
+    };
+
+    editor.setModel(ensureModelForActiveFile());
+
     editor.onDidChangeCursorPosition((event) => {
-      onCursorMove?.({
+      onCursorMoveRef.current?.({
         lineNumber: event.position.lineNumber,
-        column: event.position.column
+        column: event.position.column,
+        fileName: activeFileNameRef.current
       });
     });
 
@@ -69,21 +103,40 @@ const CodeEditor = ({
       }
 
       const value = editor.getValue();
-      onCodeChange?.(value || "", normalizeChanges(event.changes));
+      onCodeChangeRef.current?.(
+        value || "",
+        normalizeChanges(event.changes),
+        activeFileNameRef.current
+      );
     });
   };
 
   useEffect(() => {
     const editor = editorRef.current;
-    if (!editor) return;
+    const monaco = monacoRef.current;
+    if (!editor || !monaco) return;
 
-    const value = editor.getValue();
-    if (value === code) return;
+    const currentModelKey = activeFileName || "main.js";
+    currentModelKeyRef.current = currentModelKey;
 
-    preventEmitRef.current = true;
-    editor.setValue(code || "");
-    preventEmitRef.current = false;
-  }, [code]);
+    let model = modelCacheRef.current.get(currentModelKey);
+
+    if (!model) {
+      model = monaco.editor.createModel(code || "", language || "javascript");
+      modelCacheRef.current.set(currentModelKey, model);
+    }
+
+    if (editor.getModel() !== model) {
+      editor.setModel(model);
+    }
+
+    const modelValue = model.getValue();
+    if (modelValue !== code) {
+      preventEmitRef.current = true;
+      model.setValue(code || "");
+      preventEmitRef.current = false;
+    }
+  }, [activeFileName, code, language]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -92,7 +145,6 @@ const CodeEditor = ({
     if (!editor || !monaco) return;
 
     const model = editor.getModel();
-
     if (!model || !language) return;
 
     if (typeof model.getLanguageId === "function" && model.getLanguageId() === language) {
@@ -192,7 +244,7 @@ const CodeEditor = ({
     <Editor
       height="100%"
       language={language}
-      value={code}
+      defaultValue={code}
       theme="vs-dark"
       options={{
         ...editorOptions,

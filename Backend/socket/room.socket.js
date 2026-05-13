@@ -11,6 +11,15 @@ const roomUsersStore = new Map();
 const socketMembershipStore = new Map();
 const DEFAULT_MAX_PARTICIPANTS = 8;
 
+const sanitizeUsername = (name = "") => {
+  return String(name)
+    .trim()
+    .replace(/<[^>]*>/g, "")
+    .replace(/[^\w\s-]/g, "")
+    .slice(0, 50)
+    .trim();
+};
+
 const toClientUsers = (usersMap) => {
   return Array.from(usersMap.values()).map((user) => ({
     id: user.id,
@@ -103,9 +112,16 @@ export const registerRoomSocket = (io, socket) => {
     try {
       const roomId = normalizeRoomId(payload.roomId || "");
       const userId = String(payload.user?.id || payload.userId || socket.user?.id || socket.id);
-      const userName = payload.user?.name || payload.userName || socket.user?.name || "Guest";
+      const userName =
+        sanitizeUsername(
+          payload.user?.name || payload.userName || socket.user?.name || "Guest"
+        ) || "Guest";
 
       if (!roomId || !userId) {
+        socket.emit("ROOM_JOIN_ERROR", {
+          roomId,
+          message: "Room ID and user identity are required.",
+        });
         return;
       }
 
@@ -192,6 +208,10 @@ export const registerRoomSocket = (io, socket) => {
       await persistRoomUsers(roomId, users);
     } catch (error) {
       logger.error("JOIN_ROOM failed", error);
+      socket.emit("ROOM_JOIN_ERROR", {
+        roomId: normalizeRoomId(payload?.roomId || ""),
+        message: error?.message || "Failed to join room.",
+      });
     }
   });
 

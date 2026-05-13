@@ -313,9 +313,11 @@ const useEditor = ({ roomId, user }) => {
     });
   };
 
-  const handleEditorChange = (nextCode = "", editorChanges = []) => {
+  const handleEditorChange = (nextCode = "", editorChanges = [], sourceFileName = "") => {
     const currentState = stateRef.current;
-    const currentFileName = currentState.activeFile;
+    const currentFileName =
+      findFileNameCaseInsensitive(currentState.fileOrder, sourceFileName) ||
+      currentState.activeFile;
 
     if (!currentFileName || currentState.files[currentFileName] === undefined) {
       return;
@@ -352,11 +354,13 @@ const useEditor = ({ roomId, user }) => {
     });
   };
 
-  const handleCursorMove = (position) => {
+  const handleCursorMove = (position = {}) => {
     if (!roomId || !userId || !position) return;
 
     const currentState = stateRef.current;
-    const currentFileName = currentState.activeFile;
+    const currentFileName =
+      findFileNameCaseInsensitive(currentState.fileOrder, position.fileName) ||
+      currentState.activeFile;
 
     socket.emit(SOCKET_EVENTS.CURSOR_MOVE, {
       roomId,
@@ -364,7 +368,10 @@ const useEditor = ({ roomId, user }) => {
       userName,
       fileId: currentState.fileMeta[currentFileName]?.id,
       fileName: currentFileName,
-      position
+      position: {
+        lineNumber: position.lineNumber,
+        column: position.column
+      }
     });
   };
 

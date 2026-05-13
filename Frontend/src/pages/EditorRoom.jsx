@@ -341,6 +341,24 @@ const EditorRoom = () => {
       addConsoleLog("error", message);
     };
 
+    const handleCodeChangeError = (payload) => {
+      const message = payload?.message || "Could not save code changes.";
+      toast.error(message);
+      addConsoleLog("error", message);
+    };
+
+    const handleFileChangeError = (payload) => {
+      const message = payload?.message || "Could not switch file.";
+      toast.error(message);
+      addConsoleLog("error", message);
+    };
+
+    const handleRenameError = (payload) => {
+      const message = payload?.message || "Could not rename file.";
+      toast.error(message);
+      addConsoleLog("error", message);
+    };
+
     const handleFileDeleteError = (payload) => {
       const message = payload?.message || "Could not delete file.";
       toast.error(message);
@@ -348,10 +366,16 @@ const EditorRoom = () => {
     };
 
     socket.on(SOCKET_EVENTS.FILE_CREATE_ERROR, handleFileCreateError);
+    socket.on("CODE_CHANGE_ERROR", handleCodeChangeError);
+    socket.on("FILE_CHANGE_ERROR", handleFileChangeError);
+    socket.on("FILE_RENAME_ERROR", handleRenameError);
     socket.on(SOCKET_EVENTS.FILE_DELETE_ERROR, handleFileDeleteError);
 
     return () => {
       socket.off(SOCKET_EVENTS.FILE_CREATE_ERROR, handleFileCreateError);
+      socket.off("CODE_CHANGE_ERROR", handleCodeChangeError);
+      socket.off("FILE_CHANGE_ERROR", handleFileChangeError);
+      socket.off("FILE_RENAME_ERROR", handleRenameError);
       socket.off(SOCKET_EVENTS.FILE_DELETE_ERROR, handleFileDeleteError);
     };
   }, [addConsoleLog, socket]);
