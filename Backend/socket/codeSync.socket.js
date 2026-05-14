@@ -413,6 +413,8 @@ export const registerCodeSyncSocket = (io, socket) => {
       const sanitizedName = sanitizeFileName(requestedName, fallbackLanguage);
       const uniqueName = ensureUniqueFileName(files, sanitizedName, targetFile.id);
 
+      const previousName = targetFile.name;
+
       targetFile.name = uniqueName;
       targetFile.language = getLanguageFromFileName(uniqueName, fallbackLanguage);
       targetFile.lastEditedBy = payload.userName || payload.userId || "Collaborator";
@@ -435,8 +437,11 @@ export const registerCodeSyncSocket = (io, socket) => {
       io.to(roomId).emit("FILE_RENAMED", {
         roomId,
         fileId: targetFile.id,
-        fileName: targetFile.name,
+        oldFileName: previousName,
+        fileName: uniqueName,
         language: targetFile.language,
+        userId: payload.userId,
+        userName: payload.userName,
       });
 
       if (activeFile.id === targetFile.id) {
@@ -513,6 +518,8 @@ export const registerCodeSyncSocket = (io, socket) => {
         roomId,
         fileId: targetFile.id,
         fileName: targetFile.name,
+        userId: payload.userId,
+        userName: payload.userName,
       });
 
       if (nextActive) {

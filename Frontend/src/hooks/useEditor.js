@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSocket from "./useSocket";
 import {
   DEFAULT_EDITOR_CODE,
@@ -190,6 +190,7 @@ const useEditor = ({ roomId, user }) => {
   const [editorState, setEditorState] = useState(() => createDefaultState());
   const [recentActivity, setRecentActivity] = useState([]);
   const [remoteCursors, setRemoteCursors] = useState({});
+  const [dirtyFiles, setDirtyFiles] = useState(() => new Set());
 
   const stateRef = useRef(editorState);
   const activityIdRef = useRef(0);
@@ -197,6 +198,44 @@ const useEditor = ({ roomId, user }) => {
   useEffect(() => {
     stateRef.current = editorState;
   }, [editorState]);
+
+  const markFileDirty = useCallback((fileName) => {
+    if (!fileName) return;
+
+    setDirtyFiles((prev) => {
+      if (prev.has(fileName)) return prev;
+      const next = new Set(prev);
+      next.add(fileName);
+      return next;
+    });
+  }, []);
+
+  const clearDirtyFiles = useCallback(() => {
+    setDirtyFiles((prev) => (prev.size === 0 ? prev : new Set()));
+  }, []);
+
+  const renameDirtyFile = useCallback((oldName, newName) => {
+    if (!oldName || !newName || oldName === newName) return;
+
+    setDirtyFiles((prev) => {
+      if (!prev.has(oldName)) return prev;
+      const next = new Set(prev);
+      next.delete(oldName);
+      next.add(newName);
+      return next;
+    });
+  }, []);
+
+  const removeDirtyFile = useCallback((fileName) => {
+    if (!fileName) return;
+
+    setDirtyFiles((prev) => {
+      if (!prev.has(fileName)) return prev;
+      const next = new Set(prev);
+      next.delete(fileName);
+      return next;
+    });
+  }, []);
 
   const activeFileName =
     editorState.files[editorState.activeFile] !== undefined
@@ -352,6 +391,8 @@ const useEditor = ({ roomId, user }) => {
       nextLanguage,
       changes: editorChanges
     });
+
+    markFileDirty(currentFileName);
   };
 
   const handleCursorMove = (position = {}) => {
@@ -418,6 +459,8 @@ const useEditor = ({ roomId, user }) => {
         activeFile: uniqueName
       };
     });
+
+    markFileDirty(uniqueName);
 
     if (!roomId || !userId) {
       return;
@@ -501,6 +544,8 @@ const useEditor = ({ roomId, user }) => {
       };
     });
 
+    renameDirtyFile(sourceName, uniqueName);
+
     if (roomId && userId) {
       socket.emit(SOCKET_EVENTS.FILE_RENAME, {
         roomId,
@@ -572,6 +617,8 @@ const useEditor = ({ roomId, user }) => {
       };
     });
 
+    removeDirtyFile(resolvedTarget);
+
     if (roomId && userId) {
       socket.emit(SOCKET_EVENTS.FILE_DELETE, {
         roomId,
@@ -625,9 +672,12 @@ const useEditor = ({ roomId, user }) => {
       userId,
       userName
     });
+
+    markFileDirty(currentFileName);
   };
 
   const hydrateFilesFromSnapshot = (snapshotFiles = {}, preferredActiveFile = "") => {
+    clearDirtyFiles();
     setEditorState((prev) => {
       const normalized = normalizeSnapshotFiles(
         snapshotFiles,
@@ -656,6 +706,7 @@ const useEditor = ({ roomId, user }) => {
       const normalized = normalizeServerFiles(payload.files, payload?.language || DEFAULT_LANGUAGE);
       const activeFromServer = normalized.fileIdToName[payload?.activeFileId];
 
+      clearDirtyFiles();
       setEditorState({
         ...normalized,
         activeFile: activeFromServer || normalized.activeFile || DEFAULT_FILE_NAME
@@ -836,56 +887,79 @@ const useEditor = ({ roomId, user }) => {
     const handleFileRenamed = (payload) => {
       if (!payload) return;
 
+      const prevSnap = stateRef.current;
+      const currentName = payload?.fileId
+        ? prevSnap.fileIdToName[payload.fileId]
+        : findFileNameCaseInsensitive(prevSnap.fileOrder, payload?.oldFileName || payload?.fileName);
+
+      if (!currentName || prevSnap.files[currentName] === undefined) {
+        return;
+      }
+
+      const requestedName = sanitizeClientFileName(payload?.fileName || currentName);
+      const existingNames = new Set(
+        prevSnap.fileOrder
+          .filter((fileName) => fileName !== currentName)
+          .map((fileName) => fileName.toLowerCase())
+      );
+      const uniqueName = makeUniqueName(requestedName, existingNames);
+
+      if (uniqueName === currentName) {
+        return;
+      }
+
+      renameDirtyFile(currentName, uniqueName);
+
       setEditorState((prev) => {
-        const currentName = payload?.fileId
+        const currentNameInner = payload?.fileId
           ? prev.fileIdToName[payload.fileId]
           : findFileNameCaseInsensitive(prev.fileOrder, payload?.oldFileName || payload?.fileName);
 
-        if (!currentName || prev.files[currentName] === undefined) {
+        if (!currentNameInner || prev.files[currentNameInner] === undefined) {
           return prev;
         }
 
-        const requestedName = sanitizeClientFileName(payload?.fileName || currentName);
-        const existingNames = new Set(
+        const requestedNameInner = sanitizeClientFileName(payload?.fileName || currentNameInner);
+        const existingNamesInner = new Set(
           prev.fileOrder
-            .filter((fileName) => fileName !== currentName)
+            .filter((fileName) => fileName !== currentNameInner)
             .map((fileName) => fileName.toLowerCase())
         );
-        const uniqueName = makeUniqueName(requestedName, existingNames);
+        const uniqueNameInner = makeUniqueName(requestedNameInner, existingNamesInner);
 
-        if (uniqueName === currentName) {
+        if (uniqueNameInner === currentNameInner) {
           return prev;
         }
 
         const nextFiles = {
           ...prev.files,
-          [uniqueName]: prev.files[currentName]
+          [uniqueNameInner]: prev.files[currentNameInner]
         };
-        delete nextFiles[currentName];
+        delete nextFiles[currentNameInner];
 
         const nextMeta = {
           ...prev.fileMeta,
-          [uniqueName]: {
-            ...prev.fileMeta[currentName],
+          [uniqueNameInner]: {
+            ...prev.fileMeta[currentNameInner],
             language: getLanguageFromFileName(
-              uniqueName,
-              payload?.language || prev.fileMeta[currentName]?.language || DEFAULT_LANGUAGE
+              uniqueNameInner,
+              payload?.language || prev.fileMeta[currentNameInner]?.language || DEFAULT_LANGUAGE
             )
           }
         };
-        delete nextMeta[currentName];
+        delete nextMeta[currentNameInner];
 
         const nextOrder = prev.fileOrder.map((fileName) =>
-          fileName === currentName ? uniqueName : fileName
+          fileName === currentNameInner ? uniqueNameInner : fileName
         );
 
         const nextIdToName = {
           ...prev.fileIdToName
         };
 
-        const fileId = payload?.fileId || prev.fileMeta[currentName]?.id;
+        const fileId = payload?.fileId || prev.fileMeta[currentNameInner]?.id;
         if (fileId) {
-          nextIdToName[fileId] = uniqueName;
+          nextIdToName[fileId] = uniqueNameInner;
         }
 
         return {
@@ -893,7 +967,7 @@ const useEditor = ({ roomId, user }) => {
           fileMeta: nextMeta,
           fileOrder: nextOrder,
           fileIdToName: nextIdToName,
-          activeFile: prev.activeFile === currentName ? uniqueName : prev.activeFile
+          activeFile: prev.activeFile === currentNameInner ? uniqueNameInner : prev.activeFile
         };
       });
     };
@@ -901,12 +975,24 @@ const useEditor = ({ roomId, user }) => {
     const handleFileDeleted = (payload) => {
       if (!payload) return;
 
+      const prevSnap = stateRef.current;
+      const targetName =
+        payload?.fileId
+          ? prevSnap.fileIdToName[payload.fileId]
+          : findFileNameCaseInsensitive(prevSnap.fileOrder, payload?.fileName);
+
+      if (!targetName || prevSnap.files[targetName] === undefined || prevSnap.fileOrder.length <= 1) {
+        return;
+      }
+
+      removeDirtyFile(targetName);
+
       setEditorState((prev) => {
-        const targetName = payload?.fileId
+        const targetNameInner = payload?.fileId
           ? prev.fileIdToName[payload.fileId]
           : findFileNameCaseInsensitive(prev.fileOrder, payload?.fileName);
 
-        if (!targetName || prev.files[targetName] === undefined || prev.fileOrder.length <= 1) {
+        if (!targetNameInner || prev.files[targetNameInner] === undefined || prev.fileOrder.length <= 1) {
           return prev;
         }
 
@@ -914,16 +1000,16 @@ const useEditor = ({ roomId, user }) => {
         const nextMeta = { ...prev.fileMeta };
         const nextIdToName = { ...prev.fileIdToName };
 
-        delete nextFiles[targetName];
-        delete nextMeta[targetName];
+        delete nextFiles[targetNameInner];
+        delete nextMeta[targetNameInner];
 
         if (payload?.fileId) {
           delete nextIdToName[payload.fileId];
         }
 
-        const nextOrder = prev.fileOrder.filter((fileName) => fileName !== targetName);
+        const nextOrder = prev.fileOrder.filter((fileName) => fileName !== targetNameInner);
         const nextActive =
-          prev.activeFile === targetName
+          prev.activeFile === targetNameInner
             ? nextOrder[0] || DEFAULT_FILE_NAME
             : prev.activeFile;
 
@@ -1003,6 +1089,8 @@ const useEditor = ({ roomId, user }) => {
     language,
     recentActivity,
     remoteCursors,
+    dirtyFiles,
+    clearDirtyFiles,
     setActiveFileName,
     setLanguage,
     handleEditorChange,

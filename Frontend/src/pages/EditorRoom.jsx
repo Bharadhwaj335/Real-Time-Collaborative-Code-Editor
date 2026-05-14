@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { FaPlus, FaRegEdit, FaRegFileCode, FaTrash, FaUsers } from "react-icons/fa";
+import { FaPlus, FaRegEdit, FaRegFileCode, FaTrash, FaUsers, FaHistory } from "react-icons/fa";
 
 import Modal from "../components/Common/Modal";
 import Navbar from "../components/Common/Navbar";
 import RoomSettingsModal from "../components/Room/RoomSettingsModal";
 import CodeEditor from "../components/Editor/CodeEditor";
 import EditorToolbar from "../components/Editor/EditorToolbar";
+import FileTabBar from "../components/Editor/FileTabBar";
 import OutputConsole from "../components/Editor/OutputConsole";
 import RoomHeader from "../components/Room/RoomHeader";
+import RoomActivityFeed from "../components/Room/RoomActivityFeed";
 import UserList from "../components/Room/UserList";
 import ChatBox from "../components/Chat/ChatBox";
 import useRoom from "../hooks/useRoom";
@@ -30,7 +32,7 @@ import {
   removeRecentRoom,
   removeStarredRoom
 } from "../utils/helpers";
-import { SOCKET_EVENTS } from "../utils/constants";
+import { SOCKET_EVENTS, ROOM_LANGUAGES } from "../utils/constants";
 
 const extractExecutionResult = (payload) => {
   const stdout = payload?.stdout || payload?.output || payload?.run?.stdout || "";
@@ -59,7 +61,8 @@ const formatActivityTime = (value) => {
 
 const sidebarItems = [
   { key: "files", label: "Files", icon: FaRegFileCode },
-  { key: "users", label: "Users", icon: FaUsers }
+  { key: "users", label: "Users", icon: FaUsers },
+  { key: "activity", label: "Activity", icon: FaHistory }
 ];
 
 const EditorRoom = () => {
@@ -92,6 +95,8 @@ const EditorRoom = () => {
     setLanguage,
     recentActivity,
     remoteCursors,
+    dirtyFiles,
+    clearDirtyFiles,
     handleEditorChange,
     handleCursorMove,
     createFile,
@@ -117,6 +122,8 @@ const EditorRoom = () => {
   const [consoleLogs, setConsoleLogs] = useState([]);
   const [executionStatus, setExecutionStatus] = useState("idle");
   const [sidebarMode, setSidebarMode] = useState("files");
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
   const [newFileName, setNewFileName] = useState("");
   const [roomDetails, setRoomDetails] = useState(null);
@@ -128,10 +135,14 @@ const EditorRoom = () => {
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [roomPanelHeight, setRoomPanelHeight] = useState(140);
   const [outputPanelHeight, setOutputPanelHeight] = useState(200);
+  const [roomActivity, setRoomActivity] = useState([]);
 
   const lastActivityIdRef = useRef("");
   const hasLoadedCodeSnapshotRef = useRef(false);
   const lastSavedSnapshotRef = useRef("");
+  const fileListNamesRef = useRef(new Set());
+  const roomActivitySeqRef = useRef(0);
+  const prevRoomDisplayNameRef = useRef(null);
   const hydrateFromSnapshotRef = useRef(hydrateFilesFromSnapshot);
   const activeResizeTypeRef = useRef("");
   const resizeStartXRef = useRef(0);
@@ -169,6 +180,14 @@ const EditorRoom = () => {
 
       return next.slice(-200);
     });
+  }, []);
+
+  const pushRoomActivity = useCallback((partial) => {
+    roomActivitySeqRef.current += 1;
+    const id = `ra-${roomActivitySeqRef.current}-${Date.now()}`;
+    setRoomActivity((prev) =>
+      [...prev, { id, ts: new Date().toISOString(), category: "collab", ...partial }].slice(-80)
+    );
   }, []);
 
   useEffect(() => {
@@ -305,6 +324,7 @@ const EditorRoom = () => {
         });
 
         lastSavedSnapshotRef.current = snapshotKey;
+        clearDirtyFiles();
       } catch {
         addConsoleLog("warning", "Auto-save failed. Changes will retry on next edit.");
       }
@@ -313,7 +333,7 @@ const EditorRoom = () => {
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [activeFileName, addConsoleLog, files, language, roomId, user.name]);
+  }, [activeFileName, addConsoleLog, clearDirtyFiles, files, language, roomId, user.name]);
 
   useEffect(() => {
     const languageFromRoute = location.state?.language;
@@ -384,6 +404,7 @@ const EditorRoom = () => {
         return;
       }
 
+      pushRoomActivity({ category: "room", message: "This room was deleted by the owner" });
       toast.error("This room was deleted by the owner.");
       removeRecentRoom(roomId);
       removeStarredRoom(roomId);
@@ -398,7 +419,7 @@ const EditorRoom = () => {
       socket.off(SOCKET_EVENTS.ROOM_STATE, handleRoomState);
       socket.off(SOCKET_EVENTS.ROOM_DELETED, handleRoomDeleted);
     };
-  }, [navigate, roomId, socket, user.id]);
+  }, [navigate, roomId, pushRoomActivity, socket, user.id]);
 
   useEffect(() => {
     const handleUserJoined = (payload) => {
@@ -411,6 +432,10 @@ const EditorRoom = () => {
       const joinedName = joinedUser.name || "A collaborator";
       toast.success(`${joinedName} joined the room.`);
       addConsoleLog("info", `${joinedName} joined the room.`);
+      pushRoomActivity({
+        category: "collab",
+        message: `${joinedName} joined the room`
+      });
     };
 
     const handleUserLeft = (payload) => {
@@ -423,6 +448,10 @@ const EditorRoom = () => {
       const leftUserName = roomUsers.find((member) => member.id === leftUserId)?.name || "A collaborator";
       toast(`${leftUserName} left the room.`);
       addConsoleLog("warning", `${leftUserName} left the room.`);
+      pushRoomActivity({
+        category: "collab",
+        message: `${leftUserName} left the room`
+      });
     };
 
     socket.on(SOCKET_EVENTS.USER_JOINED, handleUserJoined);
@@ -432,7 +461,7 @@ const EditorRoom = () => {
       socket.off(SOCKET_EVENTS.USER_JOINED, handleUserJoined);
       socket.off(SOCKET_EVENTS.USER_LEFT, handleUserLeft);
     };
-  }, [addConsoleLog, roomUsers, socket, user.id]);
+  }, [addConsoleLog, pushRoomActivity, roomUsers, socket, user.id]);
 
   useEffect(() => {
     const handleFileCreateError = (payload) => {
@@ -479,6 +508,75 @@ const EditorRoom = () => {
       socket.off(SOCKET_EVENTS.FILE_DELETE_ERROR, handleFileDeleteError);
     };
   }, [addConsoleLog, socket]);
+
+  useEffect(() => {
+    const roomKey = String(roomId || "").toUpperCase();
+
+    const handleFileListUpdate = (payload) => {
+      if (!payload || String(payload.roomId || "").toUpperCase() !== roomKey) {
+        return;
+      }
+
+      const nextNames = new Set((payload.files || []).map((f) => f.name));
+      const prev = fileListNamesRef.current;
+      const added = [...nextNames].filter((name) => !prev.has(name));
+      fileListNamesRef.current = nextNames;
+
+      if (payload.createdBy?.id && added.length >= 1) {
+        const actor = payload.createdBy.name || "Someone";
+        const createdName = added[added.length - 1];
+        pushRoomActivity({
+          category: "files",
+          message: `${actor} created ${createdName}`
+        });
+      }
+    };
+
+    const handleFileRenamedActivity = (payload) => {
+      if (!payload || String(payload.roomId || "").toUpperCase() !== roomKey) {
+        return;
+      }
+
+      const actor = payload.userName || "Someone";
+      const oldName = payload.oldFileName;
+      const newName = payload.fileName;
+
+      if (oldName && newName) {
+        pushRoomActivity({
+          category: "files",
+          message: `${actor} renamed ${oldName} → ${newName}`
+        });
+      } else if (newName) {
+        pushRoomActivity({
+          category: "files",
+          message: `${actor} renamed a file to ${newName}`
+        });
+      }
+    };
+
+    const handleFileDeletedActivity = (payload) => {
+      if (!payload || String(payload.roomId || "").toUpperCase() !== roomKey) {
+        return;
+      }
+
+      const actor = payload.userName || "Someone";
+      const fname = payload.fileName || "a file";
+      pushRoomActivity({
+        category: "files",
+        message: `${actor} deleted ${fname}`
+      });
+    };
+
+    socket.on(SOCKET_EVENTS.FILE_LIST_UPDATE, handleFileListUpdate);
+    socket.on(SOCKET_EVENTS.FILE_RENAMED, handleFileRenamedActivity);
+    socket.on(SOCKET_EVENTS.FILE_DELETED, handleFileDeletedActivity);
+
+    return () => {
+      socket.off(SOCKET_EVENTS.FILE_LIST_UPDATE, handleFileListUpdate);
+      socket.off(SOCKET_EVENTS.FILE_RENAMED, handleFileRenamedActivity);
+      socket.off(SOCKET_EVENTS.FILE_DELETED, handleFileDeletedActivity);
+    };
+  }, [pushRoomActivity, roomId, socket]);
 
   useEffect(() => {
     if (!roomError) return;
@@ -558,6 +656,12 @@ const EditorRoom = () => {
       } else {
         setExecutionStatus("success");
       }
+
+      const label = ROOM_LANGUAGES.find((item) => item.value === language)?.label || language;
+      pushRoomActivity({
+        category: "run",
+        message: `${user.name} ran ${activeFileName || "file"} (${label})`
+      });
     } catch (error) {
       const message =
         error?.response?.data?.message ||
@@ -568,6 +672,10 @@ const EditorRoom = () => {
       toast.error(message);
       addConsoleLog("error", message);
       setExecutionStatus("error");
+      pushRoomActivity({
+        category: "run",
+        message: `${user.name} tried to run code — ${message}`
+      });
     }
   };
 
@@ -648,6 +756,63 @@ const EditorRoom = () => {
   const roomDisplayName =
     roomDetails?.name || roomDetails?.roomName || roomDetails?.roomId || roomId;
 
+  useEffect(() => {
+    const next = (roomDetails?.name || roomDetails?.roomName || "").trim();
+
+    if (!next) {
+      return;
+    }
+
+    if (prevRoomDisplayNameRef.current == null) {
+      prevRoomDisplayNameRef.current = next;
+      return;
+    }
+
+    if (prevRoomDisplayNameRef.current !== next) {
+      pushRoomActivity({
+        category: "room",
+        message: `Room name updated to “${next}”`
+      });
+    }
+
+    prevRoomDisplayNameRef.current = next;
+  }, [pushRoomActivity, roomDetails?.name, roomDetails?.roomName]);
+
+  const handleToolbarLanguageChange = useCallback(
+    (lang) => {
+      const normalized = String(lang || "").toLowerCase();
+      if (normalized && normalized !== language) {
+        const label = ROOM_LANGUAGES.find((item) => item.value === normalized)?.label || normalized;
+        pushRoomActivity({
+          category: "files",
+          message: `${user.name} switched language to ${label}`
+        });
+      }
+
+      setLanguage(lang);
+    },
+    [language, pushRoomActivity, setLanguage, user.name]
+  );
+
+  const handleCloseEditorTab = useCallback(
+    (fileName, meta = {}) => {
+      if (dirtyFiles.has(fileName)) {
+        const ok = window.confirm(`Close “${fileName}” and discard unsaved changes?`);
+        if (!ok) return;
+      }
+
+      const result = deleteFile(fileName);
+
+      if (!result.success) {
+        toast.error(result.message || "Could not close file.");
+        return;
+      }
+
+      addConsoleLog("warning", meta.fromMiddleClick ? `Closed tab ${fileName}.` : `Closed ${fileName}.`);
+    },
+    [addConsoleLog, deleteFile, dirtyFiles]
+  );
+
   return (
     <div className="flex h-screen min-h-screen flex-col bg-[#1e1e1e] text-white">
       <Navbar
@@ -659,28 +824,35 @@ const EditorRoom = () => {
       />
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 p-2 sm:p-2.5">
-        <div className="flex min-h-0 flex-1 gap-2">
-          <aside className="cc-workbench-rail flex min-h-0 flex-col items-center gap-1.5 rounded-2xl p-1.5">
-            {sidebarItems.map((item) => (
-              <button
-                key={item.key}
-                onClick={() => setSidebarMode(item.key)}
-                title={item.label}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border text-slate-400 transition ${
-                  sidebarMode === item.key
-                    ? "border-[#0a7ab8]/50 bg-[#0a7ab8]/15 text-[#cfe9ff]"
-                    : "border-[#3c3c3c]/80 bg-[#1e1e1e] hover:border-[#52525b] hover:text-slate-200"
-                }`}
-              >
-                <item.icon className="h-[13px] w-[13px]" />
-              </button>
-            ))}
-          </aside>
+        <div className="relative flex min-h-0 flex-1 gap-2">
+          {isLeftPanelOpen && (
+            <div
+              className="fixed inset-0 z-10 bg-black/50 lg:hidden"
+              onClick={() => setIsLeftPanelOpen(false)}
+            />
+          )}
+          <div className={`flex gap-2 transition-all ${isLeftPanelOpen ? 'absolute inset-y-0 left-0 z-20 h-full bg-[#1e1e1e] shadow-2xl p-1.5 rounded-2xl border border-[#2a2a2a]' : 'hidden lg:relative lg:z-auto lg:flex lg:h-auto lg:bg-transparent lg:shadow-none lg:border-none lg:p-0'}`}>
+            <aside className="cc-workbench-rail flex min-h-0 flex-col items-center gap-1.5 rounded-xl p-1.5 bg-[#1e1e1e]">
+              {sidebarItems.map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => setSidebarMode(item.key)}
+                  title={item.label}
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border text-slate-400 transition ${
+                    sidebarMode === item.key
+                      ? "border-[#0a7ab8]/50 bg-[#0a7ab8]/15 text-[#cfe9ff]"
+                      : "border-[#3c3c3c]/80 bg-[#1e1e1e] hover:border-[#52525b] hover:text-slate-200"
+                  }`}
+                >
+                  <item.icon className="h-[13px] w-[13px]" />
+                </button>
+              ))}
+            </aside>
 
-          <aside
-            className="cc-panel min-h-0 shrink-0 overflow-hidden rounded-2xl"
-            style={{ width: `${leftPanelWidth}px` }}
-          >
+            <aside
+              className="cc-panel min-h-0 shrink-0 overflow-hidden rounded-xl bg-[#1e1e1e]"
+              style={{ width: `${leftPanelWidth}px` }}
+            >
             {sidebarMode === "files" ? (
               <div className="flex h-full min-h-0 flex-col">
                 <div className="cc-panel-header flex items-center justify-between px-2.5 py-1.5">
@@ -707,9 +879,20 @@ const EditorRoom = () => {
                       <button
                         type="button"
                         onClick={() => setActiveFileName(file.name)}
-                        className="w-full truncate text-left text-[11px] font-medium text-slate-200"
+                        className="flex w-full items-center gap-1.5 truncate text-left text-[11px] font-medium text-slate-200"
                       >
-                        {file.name}
+                        <span className="min-w-0 flex-1 truncate">{file.name}</span>
+                        {dirtyFiles.has(file.name) ? (
+                          <span
+                            className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400/95"
+                            title="Unsaved changes"
+                          />
+                        ) : null}
+                        {dirtyFiles.has(file.name) ? (
+                          <span className="shrink-0 text-amber-300/90" aria-hidden>
+                            *
+                          </span>
+                        ) : null}
                       </button>
 
                       <div className="mt-1 flex items-center justify-end gap-0.5">
@@ -735,7 +918,7 @@ const EditorRoom = () => {
                   ))}
                 </div>
               </div>
-            ) : (
+            ) : sidebarMode === "users" ? (
               <div className="h-full min-h-0 overflow-y-auto p-2.5">
                 <UserList
                   users={roomUsers}
@@ -743,10 +926,20 @@ const EditorRoom = () => {
                   maxParticipants={maxParticipants}
                 />
               </div>
+            ) : (
+              <div className="flex h-full min-h-0 flex-col">
+                <div className="cc-panel-header flex shrink-0 items-center justify-between px-2.5 py-1.5 border-b border-[#2a2a2a]/60">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Room Activity</p>
+                </div>
+                <div className="min-h-0 flex-1 overflow-hidden">
+                  <RoomActivityFeed items={roomActivity} />
+                </div>
+              </div>
             )}
           </aside>
+        </div>
 
-          <button
+        <button
             type="button"
             onMouseDown={(event) => startPaneResize("left", event)}
             className="group hidden w-2 shrink-0 cursor-col-resize items-center justify-center rounded-md lg:flex"
@@ -760,39 +953,27 @@ const EditorRoom = () => {
               roomId={roomId}
               language={language}
               activeFileName={activeFileName}
-              onLanguageChange={setLanguage}
+              activeFileDirty={dirtyFiles.has(activeFileName)}
+              onLanguageChange={handleToolbarLanguageChange}
               onRunCode={handleRunCode}
               onCopyLink={copyInviteLink}
               isRunning={isRunning}
               executionStatus={executionStatus}
               isRoomOwner={isRoomOwner}
               onRoomSettings={isRoomOwner ? () => setRoomSettingsOpen(true) : undefined}
+              onToggleLeftPanel={() => setIsLeftPanelOpen((prev) => !prev)}
+              onToggleRightPanel={() => setIsRightPanelOpen((prev) => !prev)}
             />
 
-            <div className="flex items-center gap-1.5 overflow-x-auto border-b border-[#2a2a2a] bg-[#252526] px-2 py-1.5">
-              {fileTabs.map((file) => (
-                <button
-                  key={file.name}
-                  type="button"
-                  onClick={() => setActiveFileName(file.name)}
-                  className={`shrink-0 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition ${
-                    file.name === activeFileName
-                      ? "border-[#0a7ab8]/45 bg-[#0a7ab8]/12 text-[#cfe9ff]"
-                      : "border-[#3c3c3c]/80 bg-[#1e1e1e] text-slate-400 hover:border-[#52525b] hover:text-slate-200"
-                  }`}
-                >
-                  {file.name}
-                </button>
-              ))}
-
-              <button
-                type="button"
-                onClick={() => setIsFileModalOpen(true)}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#3c3c3c]/80 bg-[#1e1e1e] text-slate-400 transition hover:border-[#0a7ab8]/40 hover:text-[#cfe9ff]"
-              >
-                <FaPlus className="text-[9px]" />
-              </button>
-            </div>
+            <FileTabBar
+              tabs={fileTabs}
+              activeFileName={activeFileName}
+              dirtyFiles={dirtyFiles}
+              onSelect={(name) => setActiveFileName(name)}
+              onClose={handleCloseEditorTab}
+              onAdd={() => setIsFileModalOpen(true)}
+              onRequestRename={handleRenameFile}
+            />
 
             <div className="relative min-h-0 flex-1">
               <CodeEditor
@@ -806,11 +987,20 @@ const EditorRoom = () => {
               />
             </div>
 
-            <div className="border-t border-[#2a2a2a] bg-[#252526] px-2.5 py-1.5 text-[11px] text-slate-500">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#2a2a2a] bg-[#252526] px-2.5 py-1.5 text-[11px] text-slate-500">
+              <span
+                className={
+                  dirtyFiles.has(activeFileName)
+                    ? "font-medium text-amber-200/90"
+                    : "text-slate-500"
+                }
+              >
+                {dirtyFiles.has(activeFileName) ? "Unsaved changes" : "All changes saved"}
+              </span>
               {recentActivity.length === 0 ? (
-                <p className="truncate">No remote edits yet.</p>
+                <p className="min-w-0 flex-1 truncate text-right">No remote edits yet.</p>
               ) : (
-                <p className="truncate">
+                <p className="min-w-0 flex-1 truncate text-right">
                   <span className="font-medium text-slate-300">{recentActivity[0].userName}</span> ·{" "}
                   {recentActivity[0].fileName} ({recentActivity[0].summary}){" "}
                   <span className="text-slate-600">{formatActivityTime(recentActivity[0].timestamp)}</span>
@@ -822,17 +1012,23 @@ const EditorRoom = () => {
           <button
             type="button"
             onMouseDown={(event) => startPaneResize("right", event)}
-            className="group hidden w-2 shrink-0 cursor-col-resize items-center justify-center rounded-md lg:flex"
+            className="group hidden w-2 shrink-0 cursor-col-resize items-center justify-center rounded-md xl:flex"
             title="Drag to resize right panel"
           >
             <span className="h-14 w-1 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#0a7ab8]" />
           </button>
 
+          {isRightPanelOpen && (
+            <div
+              className="fixed inset-0 z-10 bg-black/50 xl:hidden"
+              onClick={() => setIsRightPanelOpen(false)}
+            />
+          )}
           <aside
-            className="cc-panel flex min-h-0 w-full shrink-0 flex-col gap-0 overflow-hidden rounded-2xl p-2 lg:w-auto"
+            className={`cc-panel transition-all min-h-0 flex-col gap-0 overflow-hidden rounded-2xl p-2 bg-[#1e1e1e] ${isRightPanelOpen ? 'absolute inset-y-0 right-0 z-20 flex shadow-2xl border border-[#2a2a2a]' : 'hidden xl:relative xl:z-auto xl:flex xl:h-auto xl:shadow-none xl:border-none xl:p-2'}`}
             style={{ width: `${rightPanelWidth}px` }}
           >
-            <div className="shrink-0 overflow-hidden" style={{ height: `${roomPanelHeight}px` }}>
+            <div className="shrink-0 overflow-hidden">
               <RoomHeader
                 roomName={roomDisplayName}
                 roomId={roomId}
@@ -842,16 +1038,7 @@ const EditorRoom = () => {
               />
             </div>
 
-            <button
-              type="button"
-              onMouseDown={(event) => startPaneResize("room-chat", event)}
-              className="group flex h-2.5 shrink-0 cursor-row-resize items-center justify-center rounded-md"
-              title="Drag to resize room panel"
-            >
-              <span className="h-1 w-12 rounded-full bg-[#3c3c3c] transition group-hover:bg-[#0a7ab8]" />
-            </button>
-
-            <div className="min-h-[160px] flex-1 overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-hidden mt-2">
               <ChatBox roomId={roomId} user={user} />
             </div>
           </aside>
@@ -879,7 +1066,9 @@ const EditorRoom = () => {
 
         <div className="cc-statusbar flex items-center justify-between gap-3 border-t border-[#2a2a2a] px-3 py-1.5 text-[11px]">
           <div className="flex min-w-0 flex-1 items-center gap-2 truncate text-slate-200/90">
-            <span className="hidden text-slate-400 sm:inline">Ln 1, Col 1</span>
+            <span className="hidden text-slate-400 sm:inline">
+              {dirtyFiles.size > 0 ? `${dirtyFiles.size} unsaved` : "Workspace saved"}
+            </span>
             <span className="rounded border border-white/10 bg-black/10 px-1.5 py-0.5 font-mono text-[10px] uppercase text-slate-200">
               {language}
             </span>
