@@ -1,4 +1,5 @@
 import { UserModel } from "../Models/user.js";
+import { persistAvatarFile, unlinkAvatarIfExists } from "../middlewares/upload.middleware.js";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -7,6 +8,7 @@ const toSafeUser = (user) => ({
   name: user.name,
   username: user.username,
   email: user.email,
+  avatarUrl: user.avatarUrl || "",
   createdAt: user.createdAt,
 });
 
@@ -119,6 +121,85 @@ export const updateProfile = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: "Profile updated successfully.",
+      user: toSafeUser(user),
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const updateProfilePicture = async (req, res, next) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No image uploaded.",
+      });
+    }
+
+    const user = await UserModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const previousUrl = user.avatarUrl || "";
+    const nextUrl = persistAvatarFile(req.file);
+
+    user.avatarUrl = nextUrl;
+    await user.save();
+    unlinkAvatarIfExists(previousUrl);
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile picture updated.",
+      user: toSafeUser(user),
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const deleteProfilePicture = async (req, res, next) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const user = await UserModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const previousUrl = user.avatarUrl || "";
+    user.avatarUrl = "";
+    await user.save();
+    unlinkAvatarIfExists(previousUrl);
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile picture removed.",
       user: toSafeUser(user),
     });
   } catch (error) {

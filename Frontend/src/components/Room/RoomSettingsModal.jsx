@@ -14,13 +14,11 @@ const RoomSettingsModal = ({
   roomId,
   roomName: initialName = "",
   maxParticipants: initialMax = 8,
-  visibility: initialVis = "private",
   onUpdated,
   onDeleted
 }) => {
   const [name, setName] = useState(initialName);
   const [maxParticipants, setMaxParticipants] = useState(initialMax);
-  const [visibility, setVisibility] = useState(initialVis);
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -31,18 +29,16 @@ const RoomSettingsModal = ({
     setMaxParticipants(
       Math.min(MAX_ROOM_PARTICIPANTS, Math.max(MIN_ROOM_PARTICIPANTS, Number(initialMax) || MIN_ROOM_PARTICIPANTS))
     );
-    setVisibility(initialVis === "public" ? "public" : "private");
-  }, [isOpen, initialName, initialMax, initialVis]);
+  }, [isOpen, initialName, initialMax]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
       await updateRoomApi(roomId, {
         name: name.trim() || initialName,
-        maxParticipants,
-        visibility
+        maxParticipants
       });
-      toast.success("Room settings saved.");
+      toast.success("Room updated.");
       onUpdated?.();
       onClose();
     } catch (error) {
@@ -106,34 +102,6 @@ const RoomSettingsModal = ({
               onChange={(e) => setMaxParticipants(Number(e.target.value))}
               className="cc-input mt-1.5 w-full rounded-lg px-3 py-2 text-sm text-white"
             />
-          </div>
-
-          <div>
-            <span className="text-xs font-medium text-slate-400">Visibility</span>
-            <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setVisibility("private")}
-                className={`flex-1 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                  visibility === "private"
-                    ? "border-[#0a7ab8]/50 bg-[#0a7ab8]/15 text-[#cfe9ff]"
-                    : "border-[#3c3c3c] bg-[#1e1e1e] text-slate-400 hover:border-slate-500"
-                }`}
-              >
-                Private
-              </button>
-              <button
-                type="button"
-                onClick={() => setVisibility("public")}
-                className={`flex-1 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                  visibility === "public"
-                    ? "border-[#0a7ab8]/50 bg-[#0a7ab8]/15 text-[#cfe9ff]"
-                    : "border-[#3c3c3c] bg-[#1e1e1e] text-slate-400 hover:border-slate-500"
-                }`}
-              >
-                Public
-              </button>
-            </div>
           </div>
 
           <Button type="button" variant="secondary" onClick={handleCopyLink} className="w-full gap-2 !py-2 !text-xs">

@@ -7,6 +7,9 @@ import Navbar from "../components/Common/Navbar";
 import { loginUser } from "../services/api";
 import { connectSocket } from "../services/socket";
 import { setStoredToken, setStoredUser } from "../utils/helpers";
+import { getLoginErrorMessage } from "../utils/errorUtils";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const Login = () => {
   const navigate = useNavigate();
@@ -15,6 +18,7 @@ const Login = () => {
     email: "",
     password: ""
   });
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -22,47 +26,62 @@ const Login = () => {
       ...prev,
       [name]: value
     }));
+    setFieldErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleLogin = async (event) => {
     event.preventDefault();
 
-    if (!formData.email.trim() || !formData.password.trim()) {
-      toast.error("Please enter both email and password.");
+    const nextErrors = {};
+    const emailTrim = formData.email.trim();
+    const passwordTrim = formData.password.trim();
+
+    if (!emailTrim) {
+      nextErrors.email = "Email is required.";
+    } else if (!EMAIL_REGEX.test(emailTrim)) {
+      nextErrors.email = "Enter a valid email address.";
+    }
+
+    if (!passwordTrim) {
+      nextErrors.password = "Password is required.";
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
       return;
     }
 
+    setFieldErrors({});
     setLoading(true);
 
     try {
-      const response = await loginUser(formData);
+      const response = await loginUser({
+        email: emailTrim.toLowerCase(),
+        password: formData.password
+      });
       const token = response?.token || response?.jwt || response?.accessToken;
 
       if (!token) {
         throw new Error("Token missing from response");
       }
 
-      const fallbackName = formData.email.split("@")[0] || "Student";
-      const user = response?.user || {
-        id: response?.userId || `user-${Date.now()}`,
-        name: response?.name || fallbackName,
-        email: formData.email
+      const fallbackName = emailTrim.split("@")[0] || "Student";
+      const apiUser = response?.user || {};
+      const user = {
+        id: apiUser.id || response?.userId || `user-${Date.now()}`,
+        name: apiUser.name || response?.name || fallbackName,
+        email: apiUser.email || emailTrim,
+        avatarUrl: apiUser.avatarUrl || ""
       };
 
       setStoredToken(token);
       setStoredUser(user);
       connectSocket(token);
 
-      toast.success("Login successful. Welcome back!");
+      toast.success("Signed in successfully.");
       navigate("/home", { replace: true });
     } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        "Login failed. Please check your credentials.";
-
-      toast.error(message);
+      toast.error(getLoginErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -92,8 +111,12 @@ const Login = () => {
                   onChange={handleChange}
                   placeholder="you@example.com"
                   autoComplete="email"
-                  className="cc-input w-full rounded-lg px-3 py-2.5 text-[13px] text-white transition"
+                  disabled={loading}
+                  className="cc-input w-full rounded-lg px-3 py-2.5 text-[13px] text-white transition disabled:opacity-50"
                 />
+                {fieldErrors.email ? (
+                  <p className="mt-1.5 text-[11px] text-rose-300/90">{fieldErrors.email}</p>
+                ) : null}
               </label>
 
               <label className="block text-sm">
@@ -105,11 +128,15 @@ const Login = () => {
                   onChange={handleChange}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className="cc-input w-full rounded-lg px-3 py-2.5 text-[13px] text-white transition"
+                  disabled={loading}
+                  className="cc-input w-full rounded-lg px-3 py-2.5 text-[13px] text-white transition disabled:opacity-50"
                 />
+                {fieldErrors.password ? (
+                  <p className="mt-1.5 text-[11px] text-rose-300/90">{fieldErrors.password}</p>
+                ) : null}
               </label>
 
-              <Button type="submit" className="mt-1 w-full py-2.5" loading={loading}>
+              <Button type="submit" className="mt-1 w-full py-2.5" loading={loading} disabled={loading}>
                 Continue
               </Button>
             </form>

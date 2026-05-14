@@ -1017,7 +1017,6 @@ const EditorRoom = () => {
         roomId={roomId}
         roomName={roomDetails?.name || roomDetails?.roomName || ""}
         maxParticipants={roomDetails?.maxParticipants ?? maxParticipants}
-        visibility={roomDetails?.visibility || "private"}
         onUpdated={async () => {
           try {
             const response = await joinRoom(roomId);

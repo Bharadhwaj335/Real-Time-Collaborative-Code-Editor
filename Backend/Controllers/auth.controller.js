@@ -2,12 +2,14 @@ import bcrypt from "bcryptjs";
 
 import { UserModel } from "../Models/user.js";
 import { generateToken, generateRefreshToken, verifyRefreshToken } from "../utils/generateToken.js";
+import { persistAvatarFile } from "../middlewares/upload.middleware.js";
 
 const sanitizeUser = (user) => ({
   id: user._id,
   name: user.name,
   username: user.username,
   email: user.email,
+  avatarUrl: user.avatarUrl || "",
 });
 
 export const registerUser = async (req, res, next) => {
@@ -41,11 +43,17 @@ export const registerUser = async (req, res, next) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    let avatarUrl = "";
+    if (req.file) {
+      avatarUrl = persistAvatarFile(req.file);
+    }
+
     const user = await UserModel.create({
       name,
       username: req.body?.username || name,
       email,
       password: hashedPassword,
+      avatarUrl,
     });
 
     const accessToken = generateToken({
@@ -94,7 +102,7 @@ export const loginUser = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials.",
+        message: "Invalid email or password.",
       });
     }
 
@@ -103,7 +111,7 @@ export const loginUser = async (req, res, next) => {
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials.",
+        message: "Invalid email or password.",
       });
     }
 
@@ -143,7 +151,7 @@ export const refreshAccessToken = async (req, res, next) => {
     if (!refreshToken) {
       return res.status(401).json({
         success: false,
-        message: "Refresh token not found. Please login again.",
+        message: "Session expired. Please sign in again.",
       });
     }
 
@@ -152,7 +160,7 @@ export const refreshAccessToken = async (req, res, next) => {
     if (!decoded) {
       return res.status(401).json({
         success: false,
-        message: "Refresh token expired. Please login again.",
+        message: "Session expired. Please sign in again.",
       });
     }
 
@@ -161,7 +169,7 @@ export const refreshAccessToken = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "User not found.",
+        message: "Session expired. Please sign in again.",
       });
     }
 

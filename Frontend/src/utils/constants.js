@@ -1,6 +1,9 @@
 export const API_BASE_URL =
 	import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
+/** Origin for static assets (e.g. uploaded avatars at `/uploads/...`). */
+export const API_ORIGIN = String(API_BASE_URL || "").replace(/\/api\/?$/i, "");
+
 export const SOCKET_URL =
 	import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
 

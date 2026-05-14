@@ -60,7 +60,6 @@ export const createRoom = async (req, res, next) => {
   try {
     const roomName = (req.body?.name || req.body?.roomName || "").trim();
     const language = normalizeLanguage(req.body?.language, "javascript");
-    const visibility = req.body?.visibility === "public" ? "public" : "private";
     const maxParticipants = clampParticipantLimit(req.body?.maxParticipants);
     const initialCode = typeof req.body?.code === "string" ? req.body.code : "";
     const initialFile = createInitialFile(language, initialCode);
@@ -82,7 +81,6 @@ export const createRoom = async (req, res, next) => {
       language,
       currentLanguage: language,
       code: initialFile.code,
-      visibility,
       maxParticipants,
       users: [{ id: String(creatorId), name: creatorName, status: "online" }],
       files: [initialFile],
@@ -194,7 +192,6 @@ export const listMyRooms = async (req, res, next) => {
         language: room.currentLanguage || room.language || "javascript",
         maxParticipants,
         currentParticipants,
-        visibility: room.visibility || "private",
         updatedAt: room.updatedAt,
         createdAt: room.createdAt,
         createdBy: room.createdBy,
@@ -232,7 +229,7 @@ export const updateRoom = async (req, res, next) => {
       });
     }
 
-    const { name, roomName, maxParticipants, visibility } = req.body || {};
+    const { name, roomName, maxParticipants } = req.body || {};
     const nextTitle = typeof name === "string" ? name.trim() : typeof roomName === "string" ? roomName.trim() : "";
 
     if (nextTitle) {
@@ -242,10 +239,6 @@ export const updateRoom = async (req, res, next) => {
 
     if (maxParticipants !== undefined && maxParticipants !== null) {
       room.maxParticipants = clampParticipantLimit(maxParticipants);
-    }
-
-    if (visibility !== undefined && visibility !== null) {
-      room.visibility = visibility === "public" ? "public" : "private";
     }
 
     await room.save();
@@ -261,7 +254,6 @@ export const updateRoom = async (req, res, next) => {
       name: roomObject.name || roomObject.roomName || "",
       roomName: roomObject.roomName || roomObject.name || "",
       maxParticipants: maxP,
-      visibility: roomObject.visibility,
       currentParticipants,
       users: normalizedUsers,
     });

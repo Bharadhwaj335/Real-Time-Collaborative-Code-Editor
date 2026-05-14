@@ -196,7 +196,6 @@ export const registerRoomSocket = (io, socket) => {
         roomId,
         name: room.name || room.roomName || "",
         roomName: room.roomName || room.name || "",
-        visibility: room.visibility || "private",
         language: room.language || "javascript",
         currentLanguage: room.currentLanguage || room.language || "javascript",
         files,

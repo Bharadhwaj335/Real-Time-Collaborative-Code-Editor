@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import Navbar from "../components/Common/Navbar";
@@ -7,10 +7,11 @@ import Button from "../components/Common/Button";
 import Loader from "../components/Common/Loader";
 import RoomDashboard from "../components/Room/RoomDashboard";
 import { disconnectSocket } from "../services/socket";
-import { getCurrentUser, updateProfile } from "../services/api";
+import { getCurrentUser, updateProfile, updateProfilePicture, deleteProfilePicture } from "../services/api";
 import {
   clearAuthStorage,
   getStoredUser,
+  resolveMediaUrl,
   setStoredUser
 } from "../utils/helpers";
 
@@ -28,6 +29,8 @@ const Profile = () => {
   const [editEmail, setEditEmail] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [pictureBusy, setPictureBusy] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -49,14 +52,16 @@ const Profile = () => {
           ...prev,
           id: nextUser?.id || nextUser?._id || prev?.id,
           name: nextUser?.name || nextUser?.username || prev?.name || "Student",
-          email: nextUser?.email || prev?.email || ""
+          email: nextUser?.email || prev?.email || "",
+          avatarUrl: nextUser?.avatarUrl ?? prev?.avatarUrl ?? ""
         }));
 
         setStoredUser({
           ...(getStoredUser() || {}),
           id: nextUser?.id || nextUser?._id,
           name: nextUser?.name || nextUser?.username || "Student",
-          email: nextUser?.email || ""
+          email: nextUser?.email || "",
+          avatarUrl: nextUser?.avatarUrl ?? ""
         });
       } catch {
         if (isMounted) {
@@ -123,13 +128,14 @@ const Profile = () => {
         ...profile,
         id: updatedUser?.id || updatedUser?._id || profile?.id,
         name: updatedUser?.name || trimmedName,
-        email: updatedUser?.email || trimmedEmail
+        email: updatedUser?.email || trimmedEmail,
+        avatarUrl: updatedUser?.avatarUrl ?? profile?.avatarUrl ?? ""
       };
 
       setStoredUser(next);
       setProfile(next);
       setIsEditing(false);
-      toast.success(response?.message || "Profile updated.");
+      toast.success("Profile updated.");
     } catch (error) {
       const message =
         error?.response?.data?.message ||
@@ -147,6 +153,79 @@ const Profile = () => {
     setIsEditing(false);
   };
 
+  const validatePictureFile = (file) => {
+    const okType =
+      ["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
+      /\.(png|jpe?g|webp)$/i.test(file.name || "");
+    if (!okType) {
+      toast.error("Please choose a PNG, JPG, JPEG, or WebP image.");
+      return false;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be 2 MB or smaller.");
+      return false;
+    }
+    return true;
+  };
+
+  const handlePickPicture = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePictureChange = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !validatePictureFile(file)) return;
+
+    setPictureBusy(true);
+    try {
+      const response = await updateProfilePicture(file);
+      const updatedUser = response?.user || {};
+      const next = {
+        ...(getStoredUser() || {}),
+        ...profile,
+        id: updatedUser?.id || updatedUser?._id || profile?.id,
+        name: updatedUser?.name || profile?.name,
+        email: updatedUser?.email || profile?.email,
+        avatarUrl: updatedUser?.avatarUrl ?? ""
+      };
+      setStoredUser(next);
+      setProfile(next);
+      toast.success("Profile picture updated.");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || error?.response?.data?.error || "Could not update picture.";
+      toast.error(message);
+    } finally {
+      setPictureBusy(false);
+    }
+  };
+
+  const handleRemovePicture = async () => {
+    setPictureBusy(true);
+    try {
+      const response = await deleteProfilePicture();
+      const updatedUser = response?.user || {};
+      const next = {
+        ...(getStoredUser() || {}),
+        ...profile,
+        id: updatedUser?.id || updatedUser?._id || profile?.id,
+        name: updatedUser?.name || profile?.name,
+        email: updatedUser?.email || profile?.email,
+        avatarUrl: ""
+      };
+      setStoredUser(next);
+      setProfile(next);
+      toast.success("Profile picture removed.");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || error?.response?.data?.error || "Could not remove picture.";
+      toast.error(message);
+    } finally {
+      setPictureBusy(false);
+    }
+  };
+
   return (
     <div className="cc-page-shell">
       <Navbar userName={displayName} onLogout={handleLogout} />
@@ -159,10 +238,46 @@ const Profile = () => {
         ) : (
           <div className="rounded-2xl border border-[#2a2a2a] bg-[#252526] p-5 shadow-[var(--cc-shadow-soft)] sm:p-6">
             <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:gap-5 sm:text-left">
-              <Avatar name={displayName} size="lg" className="h-16 w-16 shrink-0 text-lg sm:h-[4.5rem] sm:w-[4.5rem] sm:text-xl" />
+              <Avatar
+                name={displayName}
+                imageUrl={resolveMediaUrl(profile?.avatarUrl) || undefined}
+                size="lg"
+                className="h-16 w-16 shrink-0 text-lg sm:h-[4.5rem] sm:w-[4.5rem] sm:text-xl"
+              />
               <div className="mt-4 min-w-0 sm:mt-1">
                 <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">{displayName}</h1>
                 <p className="mt-1 truncate text-[13px] text-slate-500">{profile?.email || "No email on file"}</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={handlePictureChange}
+                />
+                <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handlePickPicture}
+                    loading={pictureBusy}
+                    disabled={pictureBusy}
+                    className="!py-1.5 !text-xs"
+                  >
+                    Change photo
+                  </Button>
+                  {profile?.avatarUrl ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleRemovePicture}
+                      loading={pictureBusy}
+                      disabled={pictureBusy}
+                      className="!py-1.5 !text-xs"
+                    >
+                      Remove photo
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             </div>
 

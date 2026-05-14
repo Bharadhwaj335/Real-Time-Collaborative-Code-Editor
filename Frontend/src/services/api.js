@@ -1,6 +1,6 @@
 import axios from "axios";
 import { API_BASE_URL } from "../utils/constants";
-import { getStoredToken, clearAuthStorage } from "../utils/helpers";
+import { getStoredToken, clearAuthStorage, setStoredToken, setStoredUser } from "../utils/helpers";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -19,9 +19,19 @@ const processQueue = (error, token = null) => {
       prom.resolve(token);
     }
   });
-  
+
   isRefreshing = false;
   failedQueue = [];
+};
+
+const isAuthCredentialsRequest = (config) => {
+  const url = String(config?.url || "");
+  return (
+    url.includes("/auth/login") ||
+    url.includes("/auth/register") ||
+    url.includes("/users/login") ||
+    url.includes("/users/register")
+  );
 };
 
 api.interceptors.request.use((config) => {
@@ -36,7 +46,7 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const originalRequest = error.config;
 
     if (originalRequest?.url?.includes("/auth/refresh")) {
@@ -45,10 +55,18 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isAuthCredentialsRequest(originalRequest)) {
+        return Promise.reject(error);
+      }
+
+      if (!getStoredToken()) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(token => {
+        }).then((token) => {
           originalRequest.headers.Authorization = `Bearer ${token}`;
           return api(originalRequest);
         });
@@ -57,25 +75,28 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      return api.post("/auth/refresh")
-        .then((response) => {
-          const { token } = response.data;
-          
-          if (token) {
-            processQueue(null, token);
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
-          } else {
-            clearAuthStorage();
-            processQueue(new Error("Token refresh failed"), null);
-            return Promise.reject(error);
+      try {
+        const response = await api.post("/auth/refresh");
+        const { token } = response.data;
+
+        if (token) {
+          setStoredToken(token);
+          if (response.data?.user) {
+            setStoredUser(response.data.user);
           }
-        })
-        .catch((err) => {
-          clearAuthStorage();
-          processQueue(err, null);
-          return Promise.reject(err);
-        });
+          processQueue(null, token);
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        }
+
+        clearAuthStorage();
+        processQueue(new Error("Token refresh failed"), null);
+        return Promise.reject(error);
+      } catch (err) {
+        clearAuthStorage();
+        processQueue(err, null);
+        return Promise.reject(err);
+      }
     }
 
     return Promise.reject(error);
@@ -88,6 +109,11 @@ export const loginUser = async (payload) => {
 };
 
 export const registerUser = async (payload) => {
+  if (payload instanceof FormData) {
+    const response = await api.post("/auth/register", payload);
+    return response.data;
+  }
+
   const cleanName = payload?.name?.trim() || "";
 
   const normalizedPayload = {
@@ -135,6 +161,18 @@ export const getCurrentUser = async () => {
 
 export const updateProfile = async (payload = {}) => {
   const response = await api.put("/users/profile", payload);
+  return response.data;
+};
+
+export const updateProfilePicture = async (file) => {
+  const formData = new FormData();
+  formData.append("avatar", file);
+  const response = await api.put("/users/profile/picture", formData);
+  return response.data;
+};
+
+export const deleteProfilePicture = async () => {
+  const response = await api.delete("/users/profile/picture");
   return response.data;
 };
 

@@ -1,4 +1,4 @@
-import { MAX_RECENT_ROOMS, STORAGE_KEYS } from "./constants";
+import { API_ORIGIN, MAX_RECENT_ROOMS, STORAGE_KEYS } from "./constants";
 
 const safeStorageGet = (key) => {
 	try {
@@ -75,6 +75,25 @@ export const clearAuthStorage = () => {
 
 export const isAuthenticated = () => {
 	return Boolean(getStoredToken());
+};
+
+/** Absolute URL for backend-served media paths such as `/uploads/avatars/...`. */
+export const resolveMediaUrl = (relativeOrAbsolute) => {
+	if (!relativeOrAbsolute || typeof relativeOrAbsolute !== "string") {
+		return null;
+	}
+
+	const trimmed = relativeOrAbsolute.trim();
+	if (!trimmed) return null;
+
+	if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+		return trimmed;
+	}
+
+	const origin = API_ORIGIN || "";
+	if (!origin) return trimmed;
+
+	return `${origin}${trimmed.startsWith("/") ? trimmed : `/${trimmed}`}`;
 };
 
 export const getInitials = (name = "Guest") =>

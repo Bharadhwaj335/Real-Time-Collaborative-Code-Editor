@@ -6,6 +6,7 @@ import Button from "../components/Common/Button";
 import Navbar from "../components/Common/Navbar";
 import { createRoom, joinRoom } from "../services/api";
 import { disconnectSocket } from "../services/socket";
+import { getErrorMessage } from "../utils/errorUtils";
 import {
   clearAuthStorage,
   getRecentRooms,
@@ -59,11 +60,11 @@ const CreateRoom = () => {
         language: resolvedLanguage
       });
 
-      toast.success("Room created 🚀");
+      toast.success("Room created.");
       navigate(`/room/${roomId}`, { state: { language: resolvedLanguage } });
 
     } catch (error) {
-      toast.error(error?.message || "Failed to create room.");
+      toast.error(getErrorMessage(error) || "Failed to create room.");
     } finally {
       setLoading(false);
     }

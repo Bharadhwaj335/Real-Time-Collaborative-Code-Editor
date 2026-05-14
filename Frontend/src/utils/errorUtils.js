@@ -63,3 +63,63 @@ export const isNotFoundError = (error) => {
 export const isServerError = (error) => {
   return error?.response?.status >= 500;
 };
+
+/** Friendly copy for failed sign-in (never exposes refresh-token internals). */
+export const getLoginErrorMessage = (error) => {
+  const status = error?.response?.status;
+
+  if (status === 401) {
+    return "Invalid email or password.";
+  }
+
+  if (status === 400) {
+    const msg = error?.response?.data?.message;
+    if (typeof msg === "string" && msg.trim()) {
+      return msg.trim();
+    }
+
+    const errors = error?.response?.data?.errors;
+    if (errors && typeof errors === "object") {
+      const first = Object.values(errors).find((v) => typeof v === "string" && v.trim());
+      if (first) return first.trim();
+    }
+  }
+
+  if (status === 409) {
+    const msg = error?.response?.data?.message;
+    if (typeof msg === "string" && msg.trim()) return msg.trim();
+  }
+
+  if (status >= 500) {
+    return "Something went wrong on our end. Please try again.";
+  }
+
+  return "Something went wrong. Please try again.";
+};
+
+export const getRegisterErrorMessage = (error) => {
+  const status = error?.response?.status;
+
+  if (status === 409) {
+    return "An account with this email already exists.";
+  }
+
+  if (status === 400) {
+    const msg = error?.response?.data?.message;
+    if (typeof msg === "string" && msg.trim()) {
+      return msg.trim();
+    }
+
+    const errors = error?.response?.data?.errors;
+    if (errors && typeof errors === "object") {
+      const first = Object.values(errors).find((v) => typeof v === "string" && v.trim());
+      if (first) return first.trim();
+    }
+  }
+
+  if (status >= 500) {
+    return "Something went wrong on our end. Please try again.";
+  }
+
+  return "Could not create your account. Please try again.";
+};

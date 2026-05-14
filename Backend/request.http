@@ -28,7 +28,6 @@ Authorization: Bearer your_jwt_token_here
 {
   "roomName": "DSA Practice Group",
   "language": "javascript",
-  "visibility": "private",
   "maxParticipants": 8
 }
 

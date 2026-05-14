@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FaBars, FaChevronDown, FaTimes, FaUsers } from "react-icons/fa";
 import Avatar from "./Avatar";
+import { getStoredUser, resolveMediaUrl } from "../../utils/helpers";
 
 const navItems = [
   { label: "Home", to: "/home" },
@@ -27,6 +28,8 @@ const Navbar = ({
   const showConnection = typeof isConnected === "boolean";
   const showUsers = typeof connectedUsers === "number";
   const userLabel = userName || "Student";
+  const storedUser = !publicMode ? getStoredUser() : null;
+  const avatarSrc = resolveMediaUrl(storedUser?.avatarUrl);
 
   const isEditorPage = useMemo(() => location.pathname.startsWith("/room/"), [location.pathname]);
 
@@ -177,7 +180,7 @@ const Navbar = ({
                 onClick={() => setIsMenuOpen((prev) => !prev)}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-[#3c3c3c]/70 bg-[#1e1e1e]/95 py-1 pl-1 pr-2 text-sm text-slate-200 transition hover:border-[#0a7ab8]/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a7ab8]/45"
               >
-                <Avatar name={userLabel} size="sm" />
+                <Avatar name={userLabel} imageUrl={avatarSrc || undefined} size="sm" />
                 <span className="hidden max-w-[120px] truncate text-xs font-medium sm:inline sm:max-w-[140px]">
                   {userLabel}
                 </span>

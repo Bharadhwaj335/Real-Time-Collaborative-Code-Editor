@@ -14,7 +14,7 @@ const colorFromName = (name = "") => {
   return palette[total % palette.length];
 };
 
-const Avatar = ({ name, size = "md", className = "" }) => {
+const Avatar = ({ name, imageUrl, size = "md", className = "" }) => {
   const sizes = {
     sm: "h-7 w-7 text-xs",
     md: "h-9 w-9 text-sm",
@@ -22,6 +22,17 @@ const Avatar = ({ name, size = "md", className = "" }) => {
   };
 
   const sizeClass = sizes[size] || sizes.md;
+
+  if (imageUrl) {
+    return (
+      <div
+        className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#2d2d2d] ring-1 ring-white/10 ${sizeClass} ${className}`}
+        title={name}
+      >
+        <img src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+      </div>
+    );
+  }
 
   return (
     <div

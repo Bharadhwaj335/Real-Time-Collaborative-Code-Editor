@@ -68,7 +68,7 @@ const RoomDashboard = ({ embedded = false }) => {
     setRenameSaving(true);
     try {
       await updateRoomApi(rename.roomId, { name: trimmed });
-      toast.success("Room renamed.");
+      toast.success("Room updated.");
       setRename({ open: false, roomId: "", name: "" });
       await loadRooms();
     } catch (error) {
@@ -183,7 +183,6 @@ const RoomDashboard = ({ embedded = false }) => {
                       >
                         {full ? "Full" : "Open"}
                       </span>
-                      <span className="normal-case text-slate-600">{room.visibility === "public" ? "Public" : "Private"}</span>
                     </div>
                   </div>
 

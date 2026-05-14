@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import { createServer } from "node:http";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import { connectDB } from "./config/db.js";
 import { env, validateEnv } from "./config/env.js";
@@ -16,6 +18,8 @@ import { corsOriginHandler } from "./utils/cors.js";
 
 const app = express();
 const httpServer = createServer(app);
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 httpServer.on("error", (error) => {
   if (error?.code === "EADDRINUSE") {
@@ -50,6 +54,8 @@ app.use((req, res, next) => {
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, message: "Backend is running" });
 });
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);

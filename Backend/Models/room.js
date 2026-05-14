@@ -138,7 +138,6 @@ roomSchema.pre("validate", function normalizeRoomName() {
 // Note: roomId index is already created via unique: true on the field
 roomSchema.index({ createdAt: -1 });
 roomSchema.index({ createdBy: 1 });
-roomSchema.index({ visibility: 1 });
 roomSchema.index({ "users.id": 1 });
 
 export const RoomModel = model("Room", roomSchema);
