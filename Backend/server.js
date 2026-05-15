@@ -51,6 +51,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/", (_req, res) => {
+  res.status(200).json({ success: true, message: "Real-Time Collaborative Code Editor API is running." });
+});
+
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, message: "Backend is running" });
 });
