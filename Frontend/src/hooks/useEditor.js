@@ -818,6 +818,7 @@ const useEditor = ({ roomId, user }) => {
 
     const handleFileChange = (payload) => {
       if (!payload) return;
+      if (payload.userId && payload.userId !== userId) return;
 
       setEditorState((prev) => {
         const fileNameFromId = payload?.fileId ? prev.fileIdToName[payload.fileId] : "";

@@ -133,7 +133,13 @@ const CodeEditor = ({
     const modelValue = model.getValue();
     if (modelValue !== code) {
       preventEmitRef.current = true;
+      const position = editor.getPosition();
+      const selection = editor.getSelection();
+
       model.setValue(code || "");
+
+      if (position) editor.setPosition(position);
+      if (selection) editor.setSelection(selection);
       preventEmitRef.current = false;
     }
   }, [activeFileName, code, language]);
