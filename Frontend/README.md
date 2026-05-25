@@ -1,39 +1,64 @@
+# Real-Time Collaborative Code Editor - Frontend
 
-# Real-Time-Collaborative-Code-Editor
-Features
-Room based coding session
-Real-time code sync
-Multiple language support
+This directory contains the client-side implementation of the Real-Time Collaborative Code Editor. It provides the user interface for authenticating, managing rooms, writing code collaboratively, and communicating with peers via text chat.
 
-Code execution API
-Live cursor tracking
-Chat inside coding room
-Invite via share link
-Syntax highlighting
----------------------------
-Tech Stack:
-React + Monaco Editor
-Node.js + Express
-Socket.io
-MongoDB
-3. Full Stack E-Commerce Platform
-(Production Level
--------------------
-=======
-# React + Vite
+## Tech Stack
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+*   **Framework:** React 19 + Vite
+*   **Routing:** React Router DOM
+*   **State Management & API:** React Hooks, Axios
+*   **Real-time Communication:** Socket.io-client
+*   **Code Editor:** Monaco Editor (@monaco-editor/react)
+*   **Styling:** Tailwind CSS
 
-Currently, two official plugins are available:
+## Directory Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```text
+Frontend/
+├── public/              # Static assets (favicon, manifest)
+├── src/
+│   ├── assets/          # Images and other bundled assets
+│   ├── components/      # Reusable React components
+│   │   ├── Auth/        # Login and registration forms
+│   │   ├── Chat/        # Room chat box and messages
+│   │   ├── Common/      # Modals, Navbar, generic UI elements
+│   │   ├── Editor/      # Monaco editor wrapper, tabs, and console
+│   │   └── Room/        # Room headers, settings, and user lists
+│   ├── context/         # React Context providers
+│   ├── hooks/           # Custom hooks (useEditor, useSocket, useRoom)
+│   ├── pages/           # Main route components (Home, EditorRoom, Auth)
+│   ├── services/        # API client and socket initialization
+│   ├── utils/           # Constants, helpers, and formatters
+│   ├── App.jsx          # Main application component and routing
+│   └── main.jsx         # React DOM entry point
+├── .env                 # Environment variables
+├── eslint.config.js     # ESLint configuration
+├── package.json         # Project dependencies and scripts
+├── vercel.json          # Vercel deployment configuration
+└── vite.config.js       # Vite bundler configuration
+```
 
-## React Compiler
+## Key Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1.  **Authentication:** User registration and login flows.
+2.  **Room Management:** Creating, joining, and managing collaborative sessions.
+3.  **Real-Time Code Sync:** Seamlessly editing code with multiple users, powered by Monaco Editor and Socket.io.
+4.  **Multi-File Support:** Creating, renaming, and deleting multiple files within a single room session.
+5.  **Code Execution:** Running code directly from the browser using external compilation APIs.
+6.  **Live Chat:** Real-time text messaging within active rooms.
 
-## Expanding the ESLint configuration
+## Environment Variables
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
->>>>>>> 944fde8 (Initial frontend commit)
+To run the frontend locally, you need an `.env` file in the root of the `Frontend` directory with the following variables:
+
+```properties
+VITE_API_BASE_URL=<your_backend_api_url>
+VITE_SOCKET_URL=<your_backend_socket_url>
+```
+
+## Scripts
+
+*   `npm install`: Installs dependencies.
+*   `npm run dev`: Starts the Vite development server.
+*   `npm run build`: Builds the application for production.
+*   `npm run preview`: Locally previews the production build.
