@@ -16,8 +16,13 @@ A full-stack web application enabling multiple users to collaborate on code in r
 - **Code Size Validation** – Prevents abuse with 50KB code size limit on execution
 - **Responsive UI** – Modern, dark-themed interface built with React and Tailwind CSS
 
-##  Prerequisites
+## Live Demo
 
+View the deployed live application at:
+
+https://real-time-collaborative-code-editor-one.vercel.app
+
+## 📋 Prerequisites
 - **Node.js** (v16 or higher)
 - **npm** or **yarn**
 - **MongoDB** (local or cloud instance)
