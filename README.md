@@ -2,7 +2,7 @@
 
 A full-stack web application enabling multiple users to collaborate on code in real-time with live cursor tracking, file management, code execution, and instant messaging.
 
-## 🚀 Features
+##  Features
 
 - **Real-time Code Collaboration** – Multiple users edit files simultaneously with live sync
 - **Multi-file Support** – Create, rename, and delete files within rooms; automatic language detection
@@ -16,14 +16,14 @@ A full-stack web application enabling multiple users to collaborate on code in r
 - **Code Size Validation** – Prevents abuse with 50KB code size limit on execution
 - **Responsive UI** – Modern, dark-themed interface built with React and Tailwind CSS
 
-## 📋 Prerequisites
+##  Prerequisites
 
 - **Node.js** (v16 or higher)
 - **npm** or **yarn**
 - **MongoDB** (local or cloud instance)
 - **Judge0 API Key** (for code execution) – [Get free tier here](https://rapidapi.com/judge0-official/api/judge0-ce)
 
-## 🛠️ Installation
+##  Installation
 
 ### 1. Clone the Repository
 
@@ -77,7 +77,7 @@ VITE_API_BASE_URL=
 VITE_SOCKET_URL=
 ```
 
-## 🏃 Running the Application
+##  Running the Application
 
 ### Start MongoDB
 
@@ -115,7 +115,7 @@ Open your browser and navigate to:
 http://localhost:5173
 ```
 
-## 📖 API Documentation
+##  API Documentation
 
 ### Authentication Endpoints
 
@@ -210,7 +210,7 @@ Response: 200 OK
 - Rate limit: 15 executions per 60 seconds
 
 
-## 🔒 Security Features
+##  Security Features
 
 - **JWT Authentication** – Secure token-based authentication
 - **Refresh Token Flow** – 15-minute access tokens + 7-day refresh tokens
@@ -221,7 +221,7 @@ Response: 200 OK
 - **Password Hashing** – bcrypt with salt rounds
 - **Input Validation** – Sanitized file names and code payloads
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### "Cannot connect to MongoDB"
 - Ensure MongoDB is running: `mongod`
@@ -249,7 +249,7 @@ Response: 200 OK
 - Ensure backend server is running on correct port
 - Check CORS settings
 
-## 📝 Performance Optimizations
+##  Performance Optimizations
 
 - **Debounced MongoDB Saves** – CODE_CHANGE debounced 3 seconds to reduce DB write load
 - **Request Queuing** – Socket.io handles concurrent updates gracefully
