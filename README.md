@@ -22,7 +22,7 @@ View the deployed live application at:
 
 https://real-time-collaborative-code-editor-one.vercel.app
 
-## 📋 Prerequisites
+##  Prerequisites
 - **Node.js** (v16 or higher)
 - **npm** or **yarn**
 - **MongoDB** (local or cloud instance)
