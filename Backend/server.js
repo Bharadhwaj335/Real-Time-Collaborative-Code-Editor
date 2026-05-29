@@ -3,6 +3,8 @@ import cors from "cors";
 import { createServer } from "node:http";
 import path from "path";
 import { fileURLToPath } from "url";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
 
 import { connectDB } from "./config/db.js";
 import { env, validateEnv } from "./config/env.js";
@@ -15,9 +17,21 @@ import { errorMiddleware, notFoundMiddleware } from "./middlewares/error.middlew
 import { initializeSocket } from "./socket/index.js";
 import { logger } from "./utils/logger.js";
 import { corsOriginHandler } from "./utils/cors.js";
+import { globalRateLimiter } from "./middlewares/rateLimiter.js";
+
 
 const app = express();
 const httpServer = createServer(app);
+
+// Enable trust proxy for safe IP detection behind reverse proxies
+app.set("trust proxy", 1);
+
+// Mount helmet for essential security headers and mount cookieParser
+app.use(helmet());
+app.use(cookieParser());
+
+// Apply global rate limiting
+app.use(globalRateLimiter);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -59,7 +73,21 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, message: "Backend is running" });
 });
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Secure static uploads serving with sandboxing and extension whitelisting
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    const ext = path.extname(req.path).toLowerCase();
+    const allowedExtensions = new Set([".png", ".jpg", ".jpeg", ".webp"]);
+    if (!allowedExtensions.has(ext)) {
+      return res.status(403).json({ success: false, message: "Forbidden: Invalid file extension." });
+    }
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Content-Security-Policy", "default-src 'none'; sandbox");
+    next();
+  },
+  express.static(path.join(__dirname, "uploads"))
+);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);

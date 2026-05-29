@@ -170,7 +170,7 @@ export const registerCodeSyncSocket = (io, socket) => {
           name: uniqueName,
           language: inferredLanguage,
           code: typeof payload.code === "string" ? payload.code : "",
-          lastEditedBy: payload.userName || payload.userId || "Collaborator",
+          lastEditedBy: socket.user?.name || "Collaborator",
           lastEditedAt: new Date(),
         };
 
@@ -189,7 +189,7 @@ export const registerCodeSyncSocket = (io, socket) => {
       }
 
       targetFile.language = nextLanguage;
-      targetFile.lastEditedBy = payload.userName || payload.userId || "Collaborator";
+      targetFile.lastEditedBy = socket.user?.name || "Collaborator";
       targetFile.lastEditedAt = new Date();
 
       room.language = nextLanguage;
@@ -211,8 +211,8 @@ export const registerCodeSyncSocket = (io, socket) => {
         fileName: targetFile.name,
         code: targetFile.code,
         language: targetFile.language,
-        userId: payload.userId,
-        userName: payload.userName,
+        userId: socket.user?.id,
+        userName: socket.user?.name || "Collaborator",
         changes: normalizedChanges,
         timestamp: new Date().toISOString(),
       });
@@ -268,7 +268,7 @@ export const registerCodeSyncSocket = (io, socket) => {
         name: uniqueName,
         language: inferredLanguage,
         code: typeof payload.code === "string" ? payload.code : "",
-        lastEditedBy: payload.userName || payload.userId || "Collaborator",
+        lastEditedBy: socket.user?.name || "Collaborator",
         lastEditedAt: now,
       };
 
@@ -281,8 +281,8 @@ export const registerCodeSyncSocket = (io, socket) => {
       emitFileListUpdate(io, roomId, room, {
         language: newFile.language,
         createdBy: {
-          id: payload.userId,
-          name: payload.userName,
+          id: socket.user?.id,
+          name: socket.user?.name || "Collaborator",
         },
       });
 
@@ -358,8 +358,8 @@ export const registerCodeSyncSocket = (io, socket) => {
         fileId: targetFile.id,
         fileName: targetFile.name,
         language: targetFile.language,
-        userId: payload.userId,
-        userName: payload.userName,
+        userId: socket.user?.id,
+        userName: socket.user?.name || "Collaborator",
       });
     } catch (error) {
       logger.error("FILE_CHANGE failed", error);
@@ -417,7 +417,7 @@ export const registerCodeSyncSocket = (io, socket) => {
 
       targetFile.name = uniqueName;
       targetFile.language = getLanguageFromFileName(uniqueName, fallbackLanguage);
-      targetFile.lastEditedBy = payload.userName || payload.userId || "Collaborator";
+      targetFile.lastEditedBy = socket.user?.name || "Collaborator";
       targetFile.lastEditedAt = new Date();
 
       const resolvedActiveFileId = room.activeFileId || activeFileId || targetFile.id;
@@ -440,8 +440,8 @@ export const registerCodeSyncSocket = (io, socket) => {
         oldFileName: previousName,
         fileName: uniqueName,
         language: targetFile.language,
-        userId: payload.userId,
-        userName: payload.userName,
+        userId: socket.user?.id,
+        userName: socket.user?.name || "Collaborator",
       });
 
       if (activeFile.id === targetFile.id) {
@@ -518,8 +518,8 @@ export const registerCodeSyncSocket = (io, socket) => {
         roomId,
         fileId: targetFile.id,
         fileName: targetFile.name,
-        userId: payload.userId,
-        userName: payload.userName,
+        userId: socket.user?.id,
+        userName: socket.user?.name || "Collaborator",
       });
 
       if (nextActive) {
@@ -538,4 +538,12 @@ export const registerCodeSyncSocket = (io, socket) => {
       });
     }
   });
+};
+
+export const cleanCodeSyncSocketStore = (roomId) => {
+  const entry = debounceStore.get(roomId);
+  if (entry?.timerId) {
+    clearTimeout(entry.timerId);
+  }
+  debounceStore.delete(roomId);
 };

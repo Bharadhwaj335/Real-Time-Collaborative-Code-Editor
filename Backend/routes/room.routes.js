@@ -12,7 +12,7 @@ import { validateRequestBody } from "../middlewares/validation.middleware.js";
 
 const roomRoute = express.Router();
 
-roomRoute.post("/create", optionalAuth, createRoom);
+roomRoute.post("/create", authMiddleware, createRoom);
 roomRoute.get("/mine", authMiddleware, listMyRooms);
 roomRoute.post("/leave/:roomId", authMiddleware, validateRequestBody({ roomId: true }), leaveRoom);
 roomRoute.patch("/:roomId", authMiddleware, validateRequestBody({ roomId: true }), updateRoom);

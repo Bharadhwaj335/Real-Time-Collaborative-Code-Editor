@@ -18,6 +18,9 @@ export const allowedOrigins = Array.from(
 );
 
 const isLocalDevOrigin = (origin = "") => {
+  if (env.nodeEnv === "production") {
+    return false;
+  }
   const normalized = normalizeOrigin(origin);
   return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(normalized);
 };

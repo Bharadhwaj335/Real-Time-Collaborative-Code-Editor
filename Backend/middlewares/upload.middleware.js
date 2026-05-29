@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { randomBytes } from "crypto";
 import multer from "multer";
+import { fileTypeFromBuffer } from "file-type";
 
 import { AppError } from "../utils/errorHandler.js";
 
@@ -11,6 +12,7 @@ export const AVATAR_DIR = path.join(__dirname, "..", "uploads", "avatars");
 
 const ALLOWED_EXT = new Set([".png", ".jpg", ".jpeg", ".webp"]);
 const ALLOWED_MIMES = new Set(["image/png", "image/jpeg", "image/webp"]);
+
 
 export const ensureAvatarDir = () => {
   fs.mkdirSync(AVATAR_DIR, { recursive: true });
@@ -30,6 +32,29 @@ export const avatarUpload = multer({
   limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: avatarFileFilter,
 });
+
+export const validateAvatarMagicBytes = async (req, res, next) => {
+  if (!req.file) {
+    return next();
+  }
+
+  try {
+    const type = await fileTypeFromBuffer(req.file.buffer);
+    if (!type || !ALLOWED_MIMES.has(type.mime)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid file content. Please upload a real PNG, JPG, JPEG, or WebP image.",
+      });
+    }
+    next();
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: "Failed to validate file contents.",
+    });
+  }
+};
+
 
 /**
  * Parses multipart registration (optional avatar). Skips multer for JSON bodies.

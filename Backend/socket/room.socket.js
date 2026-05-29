@@ -111,11 +111,8 @@ export const registerRoomSocket = (io, socket) => {
   socket.on("JOIN_ROOM", async (payload = {}) => {
     try {
       const roomId = normalizeRoomId(payload.roomId || "");
-      const userId = String(payload.user?.id || payload.userId || socket.user?.id || socket.id);
-      const userName =
-        sanitizeUsername(
-          payload.user?.name || payload.userName || socket.user?.name || "Guest"
-        ) || "Guest";
+      const userId = String(socket.user?.id || "");
+      const userName = sanitizeUsername(socket.user?.name || "Collaborator") || "Collaborator";
 
       if (!roomId || !userId) {
         socket.emit("ROOM_JOIN_ERROR", {
@@ -221,4 +218,8 @@ export const registerRoomSocket = (io, socket) => {
   socket.on("disconnect", async () => {
     await leaveCurrentRoom();
   });
+};
+
+export const cleanRoomSocketStore = (roomId) => {
+  roomUsersStore.delete(roomId);
 };

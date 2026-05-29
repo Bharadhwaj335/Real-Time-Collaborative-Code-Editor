@@ -32,13 +32,29 @@ export const getCurrentUser = async (req, res, next) => {
   }
 };
 
-export const getUsers = async (_req, res, next) => {
+export const getUsers = async (req, res, next) => {
   try {
-    const users = await UserModel.find().select("-password").sort({ createdAt: -1 });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const users = await UserModel.find()
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await UserModel.countDocuments();
 
     return res.status(200).json({
       success: true,
       data: users.map(toSafeUser),
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     return next(error);

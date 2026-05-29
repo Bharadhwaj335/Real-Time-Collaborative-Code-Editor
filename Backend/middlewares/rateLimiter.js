@@ -1,42 +1,34 @@
-const WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS_PER_WINDOW = 15;
-const requestStore = new Map();
+import rateLimit from "express-rate-limit";
 
-const getClientKey = (req) => {
-	const forwardedFor = req.headers["x-forwarded-for"];
+export const globalRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many requests from this IP, please try again after 15 minutes.",
+  },
+});
 
-	if (typeof forwardedFor === "string" && forwardedFor.length > 0) {
-		return forwardedFor.split(",")[0].trim();
-	}
+export const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Limit each IP to 20 auth attempts per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many login/registration attempts. Please try again after 15 minutes.",
+  },
+});
 
-	return req.ip || req.socket.remoteAddress || "unknown-client";
-};
-
-export const codeExecutionRateLimiter = (req, res, next) => {
-	const key = getClientKey(req);
-	const now = Date.now();
-	const existing = requestStore.get(key);
-
-	if (!existing || now > existing.resetAt) {
-		requestStore.set(key, {
-			count: 1,
-			resetAt: now + WINDOW_MS,
-		});
-
-		return next();
-	}
-
-	if (existing.count >= MAX_REQUESTS_PER_WINDOW) {
-		const retryAfterSeconds = Math.ceil((existing.resetAt - now) / 1000);
-
-		return res.status(429).json({
-			success: false,
-			message: `Rate limit exceeded. Try again in ${retryAfterSeconds}s.`,
-		});
-	}
-
-	existing.count += 1;
-	requestStore.set(key, existing);
-	return next();
-};
-
+export const codeExecutionRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 15, // Limit each IP to 15 execution requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Rate limit exceeded. Please wait a minute before running code again.",
+  },
+});

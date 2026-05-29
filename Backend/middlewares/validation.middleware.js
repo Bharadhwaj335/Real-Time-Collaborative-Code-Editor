@@ -1,8 +1,7 @@
 import { createErrorResponse } from "../utils/errorHandler.js";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ROOM_ID_REGEX = /^[A-Z0-9]{4,10}$/;
-const PASSWORD_MIN_LENGTH = 6;
+const ROOM_ID_REGEX = /^[A-Z0-9]{4,16}$/;
 
 export const validateEmail = (email) => {
   const trimmed = String(email || "").trim().toLowerCase();
@@ -15,8 +14,15 @@ export const validateRoomId = (roomId) => {
 };
 
 export const validatePassword = (password) => {
-  const str = String(password || "").trim();
-  return str.length >= PASSWORD_MIN_LENGTH ? str : null;
+  const str = String(password || "");
+  const hasUpperCase = /[A-Z]/.test(str);
+  const hasLowerCase = /[a-z]/.test(str);
+  const hasDigitOrSpecial = /[\d\W]/.test(str);
+
+  if (str.length >= 8 && hasUpperCase && hasLowerCase && hasDigitOrSpecial) {
+    return str;
+  }
+  return null;
 };
 
 export const validateUsername = (username) => {
@@ -48,8 +54,11 @@ export const validateRequestBody = (schema) => (req, res, next) => {
 
   if (schema.password) {
     const password = req.body?.password;
-    if (!password || !validatePassword(password)) {
-      errors.password = `Password must be at least ${PASSWORD_MIN_LENGTH} characters`;
+    const validated = validatePassword(password);
+    if (!password || !validated) {
+      errors.password = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number or special character";
+    } else {
+      req.body.password = validated;
     }
   }
 

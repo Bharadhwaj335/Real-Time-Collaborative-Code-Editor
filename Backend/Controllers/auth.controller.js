@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 import { UserModel } from "../Models/user.js";
 import { generateToken, generateRefreshToken, verifyRefreshToken } from "../utils/generateToken.js";
@@ -67,6 +68,11 @@ export const registerUser = async (req, res, next) => {
       email: user.email,
     });
 
+    // Hash refresh token using SHA256 and store in user document
+    const hashedToken = crypto.createHash("sha256").update(refreshToken).digest("hex");
+    user.refreshTokens = [hashedToken];
+    await user.save();
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -126,6 +132,15 @@ export const loginUser = async (req, res, next) => {
       email: user.email,
     });
 
+    // Hash refresh token and save it in user document
+    const hashedToken = crypto.createHash("sha256").update(refreshToken).digest("hex");
+    user.refreshTokens = user.refreshTokens || [];
+    if (user.refreshTokens.length >= 10) {
+      user.refreshTokens.shift();
+    }
+    user.refreshTokens.push(hashedToken);
+    await user.save();
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -173,6 +188,20 @@ export const refreshAccessToken = async (req, res, next) => {
       });
     }
 
+    // Verify token exists in database (revocation check)
+    const hashedToken = crypto.createHash("sha256").update(refreshToken).digest("hex");
+    if (!user.refreshTokens || !user.refreshTokens.includes(hashedToken)) {
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      });
+      return res.status(401).json({
+        success: false,
+        message: "Session expired. Please sign in again.",
+      });
+    }
+
     const newAccessToken = generateToken({
       id: user._id,
       email: user.email,
@@ -183,6 +212,12 @@ export const refreshAccessToken = async (req, res, next) => {
       id: user._id,
       email: user.email,
     });
+
+    // Refresh Token Rotation: Replace old token with the new one
+    const newHashedToken = crypto.createHash("sha256").update(newRefreshToken).digest("hex");
+    user.refreshTokens = user.refreshTokens.filter((t) => t !== hashedToken);
+    user.refreshTokens.push(newHashedToken);
+    await user.save();
 
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
@@ -200,3 +235,32 @@ export const refreshAccessToken = async (req, res, next) => {
     next(error);
   }
 };
+
+export const logoutUser = async (req, res, next) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+    if (refreshToken) {
+      const decoded = verifyRefreshToken(refreshToken);
+      if (decoded) {
+        const user = await UserModel.findById(decoded.id);
+        if (user) {
+          const hashedToken = crypto.createHash("sha256").update(refreshToken).digest("hex");
+          user.refreshTokens = user.refreshTokens.filter((t) => t !== hashedToken);
+          await user.save();
+        }
+      }
+    }
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+    return res.status(200).json({
+      success: true,
+      message: "Logout successful",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

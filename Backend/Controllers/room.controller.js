@@ -118,15 +118,21 @@ export const getRoom = async (req, res, next) => {
     const maxParticipants = Number(roomObject.maxParticipants) || DEFAULT_MAX_PARTICIPANTS;
 
     return res.status(200).json({
-      ...roomObject,
+      success: true,
+      roomId: roomObject.roomId,
       name: roomName,
       roomName,
+      language: roomObject.language,
       currentLanguage: roomObject.currentLanguage || roomObject.language || "javascript",
       users: normalizedUsers,
       currentParticipants,
       maxParticipants,
       isJoinable: currentParticipants < maxParticipants,
       activeFileId: roomObject.activeFileId || roomObject.files?.[0]?.id || "",
+      createdBy: roomObject.createdBy,
+      createdAt: roomObject.createdAt,
+      updatedAt: roomObject.updatedAt,
+      visibility: roomObject.visibility,
     });
   } catch (error) {
     return next(error);
@@ -297,6 +303,16 @@ export const deleteRoom = async (req, res, next) => {
 
     await MessageModel.deleteMany({ roomId });
     await RoomModel.deleteOne({ roomId });
+
+    // Clean up in-memory socket stores
+    try {
+      const { cleanRoomSocketStore } = await import("../socket/room.socket.js");
+      const { cleanCodeSyncSocketStore } = await import("../socket/codeSync.socket.js");
+      cleanRoomSocketStore(roomId);
+      cleanCodeSyncSocketStore(roomId);
+    } catch (storeError) {
+      // ignore
+    }
 
     const io = getSocketIo();
     io?.to(roomId).emit("ROOM_DELETED", { roomId });
